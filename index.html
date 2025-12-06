@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>치아 용사 자동 사냥 RPG</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #e0f7ff;
+    }
+    h1 {
+      text-align: center;
+      margin: 10px 0 4px;
+      color: #0f766e;
+      font-size: 20px;
+    }
+    #ui {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 0 10px 8px;
+    }
+    #statsTop {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      font-size: 11px;
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 6px 8px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    #statsTop span { white-space: nowrap; }
+    #statsBottom {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-bottom: 4px;
+      padding: 0 2px;
+    }
+    #message {
+      text-align: center;
+      font-size: 12px;
+      min-height: 18px;
+      margin-bottom: 4px;
+      color: #111827;
+    }
+    #game {
+      position: relative;
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
+      /* 스크롤되는 패턴 + 하늘/잇몸 그라데이션 */
+      background:
+        repeating-linear-gradient(
+          -10deg,
+          rgba(255,255,255,0.35) 0px,
+          rgba(255,255,255,0.35) 6px,
+          rgba(255,255,255,0) 12px
+        ),
+        linear-gradient(to top, #4db6ac 22%, #b3e9ff 22%);
+      background-size: 80px 80px, 100% 100%;
+      background-repeat: repeat, no-repeat;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 260px;
+      background-position: 0 0, 0 0;
+    }
+    .ground {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 22%;
+      background: transparent;
+    }
+    .entity {
+      position: absolute;
+      line-height: 1;
+      user-select: none;
+    }
+    .player { font-size: 56px; }
+    .enemy { font-size: 44px; }
+    .enemy.boss {
+      font-size: 60px;
+      text-shadow: 0 0 6px rgba(0,0,0,0.4);
+    }
+    .projectile { font-size: 22px; }
+    .hp-bar {
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      bottom:58px;
+      width:40px;
+      height:5px;
+      background:#fecaca;
+      border-radius:3px;
+      overflow:hidden;
+    }
+    .hp-fill {
+      height:100%;
+      width:100%;
+      background:#22c55e;
+    }
+    .float-text {
+      position:absolute;
+      font-size:11px;
+      font-weight:700;
+      color:#dc2626;
+      pointer-events:none;
+      animation: floatUp 0.7s ease-out forwards;
+      text-shadow:0 0 2px #fff;
+    }
+    .float-text.crit { color:#e11d48; }
+    .float-text.heal { color:#16a34a; }
+    @keyframes floatUp {
+      0% { opacity:1; transform: translate(-50%,0); }
+      100% { opacity:0; transform: translate(-50%,-24px); }
+    }
+    #buttons {
+      max-width:640px;
+      margin: 6px auto 12px;
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:center;
+      padding:0 10px;
+    }
+    button {
+      border:none;
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:11px;
+      font-weight:600;
+      cursor:pointer;
+      color:#fff;
+      box-shadow:0 2px 4px rgba(15,23,42,0.15);
+      white-space:nowrap;
+    }
+    #btnDamage { background:#3b82f6; }
+    #btnHealth { background:#16a34a; }
+    #btnSkill  { background:#a855f7; }
+    #btnPause  { background:#f97316; }
+    button:disabled {
+      opacity:0.55;
+      cursor:default;
+      box-shadow:none;
+    }
+    /* 보스 사망시 화면 플래시 */
+    #flashOverlay {
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:100%;
+      background:white;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity 0.12s ease-out;
+    }
+  </style>
+</head>
+<body>
+  <h1>🦷 치아 용사 자동 사냥 RPG ⚔️</h1>
+  <div id="ui">
+    <div id="statsTop">
+      <span>HP: <span id="hpText">100</span> / <span id="hpMaxText">100</span></span>
+      <span>ATK: <span id="atkText">10</span></span>
+      <span>Lv: <span id="lvText">1</span></span>
+      <span>EXP: <span id="expText">0</span>/<span id="needExpText">50</span></span>
+      <span>골드: <span id="goldText">0</span></span>
+      <span>거리: <span id="distText">0</span> m</span>
+    </div>
+    <div id="statsBottom">
+      <span>스테이지: <span id="stageText">1</span></span>
+      <span>다음 보스까지: <span id="bossDistText">150</span> m</span>
+      <span>스킬 쿨타임: <span id="skillCdText">준비완료</span></span>
+    </div>
+    <div id="message">화면을 한 번 탭하면 소리가 켜집니다 🎵</div>
+  </div>
+
+  <div id="game">
+    <div class="ground"></div>
+    <div id="flashOverlay"></div>
+  </div>
+
+  <div id="buttons">
+    <button id="btnDamage">🗡 무기 강화 (+5) / 80G</button>
+    <button id="btnHealth">🛡 갑옷 강화 (+25) / 80G</button>
+    <button id="btnSkill">💥 불소 폭발 (전체 공격)</button>
+    <button id="btnPause">⏸ 일시정지</button>
+  </div>
+
+  <script>
+    const game = document.getElementById("game");
+    const flashOverlay = document.getElementById("flashOverlay");
+
+    const hpText = document.getElementById("hpText");
+    const hpMaxText = document.getElementById("hpMaxText");
+    const atkText  = document.getElementById("atkText");
+    const lvText   = document.getElementById("lvText");
+    const expText  = document.getElementById("expText");
+    const needExpText = document.getElementById("needExpText");
+    const goldText = document.getElementById("goldText");
+    const distText = document.getElementById("distText");
+    const stageText = document.getElementById("stageText");
+    const bossDistText = document.getElementById("bossDistText");
+    const skillCdText  = document.getElementById("skillCdText");
+    const message  = document.getElementById("message");
+
+    const btnDamage = document.getElementById("btnDamage");
+    const btnHealth = document.getElementById("btnHealth");
+    const btnSkill  = document.getElementById("btnSkill");
+    const btnPause  = document.getElementById("btnPause");
+
+    const GROUND_HEIGHT_RATIO = 0.22;
+    const TICK = 40; // ms
+    const PLAYER_X = 40;
+
+    let running = true;
+
+    const player = {
+      x: PLAYER_X,
+      y: 0,
+      hp: 100,
+      maxHp: 100,
+      atk: 10,
+      def: 0,
+      critChance: 0.12,
+      critMult: 1.8,
+      atkDelay: 380,
+      lastAtk: 0,
+      level: 1,
+      exp: 0,
+      expNeed: 50,
+      el: null,
+      hpBar: null,
+      hpFill: null
+    };
+
+    let distance = 0;
+    let gold = 0;
+    let stage = 1;
+
+    let enemies = [];
+    let projectiles = [];
+
+    let lastSpawn = 0;
+    let spawnDelay = 1200;
+
+    let nextBossDist = 150;
+    let bossAlive = false;
+
+    let skillCooldownMs = 0;
+    const skillTotalCd = 18000; // 18초
+
+    let bgOffset = 0; // 배경 스크롤용
+
+    // --- 사운드 매니저 (Web Audio API) ---
+    class SoundManager {
+      constructor() {
+        this.ctx = null;
+        this.bgmOn = false;
+      }
+      init() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        this.ctx = new AudioCtx();
+      }
+      resume() {
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume();
+        }
+      }
+      playTone(freq, duration, volume=0.25, type="sine") {
+        if (!this.ctx) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + duration + 0.05);
+      }
+      playAttack() {
+        this.playTone(880, 0.06, 0.10, "square");
+      }
+      playCrit() {
+        this.playTone(1200, 0.12, 0.16, "square");
+      }
+      playHit() {
+        this.playTone(220, 0.07, 0.18, "sawtooth");
+      }
+      playLevelUp() {
+        if (!this.ctx) return;
+        this.playTone(660, 0.12, 0.18, "triangle");
+        setTimeout(()=>this.playTone(880,0.16,0.2,"triangle"), 130);
+      }
+      playSkill() {
+        if (!this.ctx) return;
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(900, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.4);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.45);
+      }
+      playBossDeath() {
+        if (!this.ctx) return;
+        this.playTone(440,0.2,0.2,"triangle");
+        setTimeout(()=>this.playTone(660,0.2,0.2,"triangle"), 150);
+        setTimeout(()=>this.playTone(880,0.25,0.22,"triangle"), 320);
+      }
+      startBgm() {
+        if (this.bgmOn || !this.ctx) return;
+        this.bgmOn = true;
+        const loop = () => {
+          if (!this.bgmOn || !this.ctx) return;
+          this.playTone(392, 0.5, 0.04, "sine");     // G4
+          setTimeout(()=>this.playTone(523.25,0.5,0.04,"sine"), 650); // C5
+          setTimeout(()=>this.playTone(659.25,0.5,0.04,"sine"), 1300); // E5
+          setTimeout(loop, 2200);
+        };
+        loop();
+      }
+      startOnFirstTouch() {
+        this.init();
+        if (!this.ctx) return;
+        this.resume();
+        this.startBgm();
+      }
+    }
+    const sound = new SoundManager();
+    let audioStarted = false;
+
+    function ensureAudio() {
+      if (!audioStarted) {
+        audioStarted = true;
+        sound.startOnFirstTouch();
+        message.textContent = "소리가 켜졌습니다 🔊";
+      } else {
+        sound.resume();
+      }
+    }
+
+    window.addEventListener("pointerdown", ensureAudio, { once:true });
+
+    // --- 투사체 단계 (무기 강화 시 이펙트 업그레이드) ---
+    const PROJECTILE_LEVELS = [
+      { ch:"·", size:14, color:"#eab308" },   // 0: 작은 점
+      { ch:"•", size:16, color:"#facc15" },   // 1: 큰 점
+      { ch:"✦", size:18, color:"#fbbf24" },   // 2: 작은 노란 반짝이
+      { ch:"✸", size:20, color:"#f97316" },   // 3: 큰 노란 반짝이
+      { ch:"✨", size:22, color:"#f97316" },   // 4: 노란 스파크
+      { ch:"💥", size:24, color:"#f97316" }    // 5: 폭발
+    ];
+    let projectileTier = 0;
+
+    function updateProjectileTier() {
+      const atk = player.atk;
+      if (atk < 40) projectileTier = 0;
+      else if (atk < 80) projectileTier = 1;
+      else if (atk < 130) projectileTier = 2;
+      else if (atk < 200) projectileTier = 3;
+      else if (atk < 280) projectileTier = 4;
+      else projectileTier = 5;
+    }
+
+    function createPlayer() {
+      const h = game.clientHeight;
+      const groundTop = h * (1 - GROUND_HEIGHT_RATIO);
+      player.y = groundTop - 72;
+
+      const el = document.createElement("div");
+      el.className = "entity player";
+      el.textContent = "🦷";
+      game.appendChild(el);
+      player.el = el;
+
+      const bar = document.createElement("div");
+      bar.className = "hp-bar";
+      const fill = document.createElement("div");
+      fill.className = "hp-fill";
+      bar.appendChild(fill);
+      game.appendChild(bar);
+      player.hpBar = bar;
+      player.hpFill = fill;
+
+      updateProjectileTier();
+      drawPlayer();
+      updateUI();
+    }
+
+    function drawPlayer() {
+      if (!player.el) return;
+      player.el.style.left = player.x + "px";
+      player.el.style.top  = player.y + "px";
+      if (player.hpBar) {
+        player.hpBar.style.left = (player.x + 30) + "px";
+        player.hpBar.style.top  = (player.y - 10) + "px";
+        const ratio = Math.max(0, player.hp / player.maxHp);
+        player.hpFill.style.width = (ratio * 100) + "%";
+      }
+    }
+
+    const ENEMY_TYPES = [
+      {name:"플라크균", emoji:"🦠", baseHp:40,  speed:1.2, dmg:5,  gold:15, exp:12},
+      {name:"우식균",   emoji:"🧫", baseHp:70,  speed:0.9, dmg:8,  gold:22, exp:18},
+      {name:"치석괴물", emoji:"🪨", baseHp:120, speed:0.7, dmg:10, gold:35, exp:30},
+      {name:"날아다니는균", emoji:"🦟", baseHp:55, speed:1.6, dmg:7, gold:18, exp:14}
+    ];
+
+    function pickEnemyType() {
+      if (stage <= 2) return ENEMY_TYPES[0];
+      if (stage === 3) return Math.random() < 0.5 ? ENEMY_TYPES[0] : ENEMY_TYPES[1];
+      if (stage === 4) {
+        const r = Math.random();
+        if (r < 0.4) return ENEMY_TYPES[0];
+        if (r < 0.8) return ENEMY_TYPES[1];
+        return ENEMY_TYPES[2];
+      }
+      const r = Math.random();
+      if (r < 0.25) return ENEMY_TYPES[0];
+      if (r < 0.5) return ENEMY_TYPES[1];
+      if (r < 0.75) return ENEMY_TYPES[2];
+      return ENEMY_TYPES[3];
+    }
+
+    function spawnEnemy(isBoss=false) {
+      const h = game.clientHeight;
+      const groundTop = h * (1 - GROUND_HEIGHT_RATIO);
+      const baseX = game.clientWidth - 60;
+
+      let enemy;
+      if (isBoss) {
+        const bossHp = 280 + stage * 60;
+        enemy = {
+          name:"거대 충치 괴수",
+          emoji:"👾",
+          x: baseX,
+          y: groundTop - 90,
+          hp: bossHp,
+          maxHp: bossHp,
+          speed: 0.6,
+          dmg: 18 + stage * 2,
+          gold: 120 + stage*20,
+          exp: 80 + stage*20,
+          boss:true,
+          el:null, hpBar:null, hpFill:null
+        };
+      } else {
+        const t = pickEnemyType();
+        const hpScale = 1 + (stage-1)*0.25;
+        enemy = {
+          name:t.name,
+          emoji:t.emoji,
+          x: baseX,
+          y: groundTop - 60,
+          hp: Math.round(t.baseHp * hpScale),
+          maxHp: Math.round(t.baseHp * hpScale),
+          speed: t.speed + (stage-1)*0.05,
+          dmg: t.dmg + (stage-1),
+          gold: t.gold + stage*2,
+          exp: t.exp + stage*3,
+          boss:false,
+          el:null, hpBar:null, hpFill:null
+        };
+      }
+
+      const el = document.createElement("div");
+      el.className = "entity enemy" + (enemy.boss ? " boss" : "");
+      el.textContent = enemy.emoji;
+      game.appendChild(el);
+      enemy.el = el;
+
+      const bar = document.createElement("div");
+      bar.className = "hp-bar";
+      bar.style.width = enemy.boss ? "70px" : "40px";
+      const fill = document.createElement("div");
+      fill.className = "hp-fill";
+      bar.appendChild(fill);
+      game.appendChild(bar);
+      enemy.hpBar = bar;
+      enemy.hpFill = fill;
+
+      enemies.push(enemy);
+      drawEnemy(enemy);
+
+      if (enemy.boss) {
+        bossAlive = true;
+        showMessage("⚠ 보스 등장! " + enemy.name);
+      }
+    }
+
+    function drawEnemy(e) {
+      e.el.style.left = e.x + "px";
+      e.el.style.top  = e.y + "px";
+      e.hpBar.style.left = (e.x + 24) + "px";
+      e.hpBar.style.top  = (e.y - 10) + "px";
+      const ratio = Math.max(0, e.hp / e.maxHp);
+      e.hpFill.style.width = (ratio * 100) + "%";
+    }
+
+    function spawnFloatText(x,y,text,type) {
+      const div = document.createElement("div");
+      div.className = "float-text" + (type ? " " + type : "");
+      div.textContent = text;
+      div.style.left = x + "px";
+      div.style.top  = y + "px";
+      game.appendChild(div);
+      setTimeout(()=> {
+        if (div.parentNode) div.parentNode.removeChild(div);
+      }, 800);
+    }
+
+    function shoot() {
+      const now = performance.now();
+      if (now - player.lastAtk < player.atkDelay) return;
+      if (enemies.length === 0) return;
+
+      player.lastAtk = now;
+      const projStyle = PROJECTILE_LEVELS[projectileTier];
+      const proj = {
+        x: player.x + 38,
+        y: player.y + 18,
+        speed: 5.2,
+        dmg: player.atk,
+        el: null
+      };
+      const el = document.createElement("div");
+      el.className = "entity projectile";
+      el.textContent = projStyle.ch;
+      el.style.fontSize = projStyle.size + "px";
+      el.style.color = projStyle.color;
+      game.appendChild(el);
+      proj.el = el;
+      projectiles.push(proj);
+      drawProjectile(proj);
+      sound.playAttack();
+    }
+
+    function drawProjectile(p) {
+      if (!p.el) return;
+      p.el.style.left = p.x + "px";
+      p.el.style.top  = p.y + "px";
+    }
+
+    function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+      return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+    }
+
+    function updateSkillCooldown() {
+      if (skillCooldownMs <= 0) {
+        skillCooldownMs = 0;
+        skillCdText.textContent = "준비완료";
+        btnSkill.disabled = false;
+      } else {
+        skillCooldownMs -= TICK;
+        if (skillCooldownMs < 0) skillCooldownMs = 0;
+        const sec = Math.ceil(skillCooldownMs/1000);
+        skillCdText.textContent = sec + "초";
+        btnSkill.disabled = true;
+      }
+    }
+
+    function updateUI() {
+      hpText.textContent = Math.max(0, Math.round(player.hp));
+      hpMaxText.textContent = Math.round(player.maxHp);
+      atkText.textContent = Math.round(player.atk);
+      lvText.textContent = player.level;
+      expText.textContent = player.exp;
+      needExpText.textContent = player.expNeed;
+      goldText.textContent = gold;
+      distText.textContent = Math.floor(distance);
+      stageText.textContent = stage;
+      const toBoss = Math.max(0, Math.floor(nextBossDist - distance));
+      bossDistText.textContent = bossAlive ? "보스 진행 중" : (toBoss + " m");
+    }
+
+    function gainExp(amount) {
+      player.exp += amount;
+      while (player.exp >= player.expNeed) {
+        player.exp -= player.expNeed;
+        levelUp();
+      }
+      updateUI();
+    }
+
+    function levelUp() {
+      player.level++;
+      player.expNeed = Math.round(player.expNeed * 1.4);
+      const hpGain = 18;
+      const atkGain = 3;
+      player.maxHp += hpGain;
+      player.hp = player.maxHp;
+      player.atk += atkGain;
+      updateProjectileTier();
+      spawnFloatText(player.x+30, player.y-10, "레벨업!", "heal");
+      showMessage("🎉 레벨 " + player.level + " 달성! HP+"+hpGain+" ATK+"+atkGain);
+      sound.playLevelUp();
+    }
+
+    function gameOver() {
+      running = false;
+      showMessage("☠ 게임 오버! 새로고침하면 처음부터 다시 시작합니다.");
+    }
+
+    function showMessage(text) {
+      message.textContent = text;
+    }
+
+    function updateStage() {
+      const newStage = 1 + Math.floor(distance / 200);
+      if (newStage !== stage) {
+        stage = newStage;
+        showMessage("📈 스테이지 " + stage + " 진입! 적이 더 강해집니다.");
+      }
+    }
+
+    function updateBackground() {
+      // 중간 속도 느낌
+      bgOffset -= 0.8;
+      game.style.backgroundPosition = `${bgOffset}px 0, 0 0`;
+    }
+
+    function removeProjectileAt(index) {
+      const p = projectiles[index];
+      if (!p) return;
+      if (p.el && p.el.parentNode) {
+        p.el.parentNode.removeChild(p.el);
+      }
+      projectiles.splice(index, 1);
+    }
+
+    function bossFlashEffect() {
+      let count = 0;
+      function flashOnce() {
+        if (count >= 3) {
+          flashOverlay.style.opacity = 0;
+          return;
+        }
+        flashOverlay.style.opacity = 0.9;
+        setTimeout(()=>{ flashOverlay.style.opacity = 0; }, 120);
+        count++;
+        setTimeout(flashOnce, 220);
+      }
+      flashOnce();
+    }
+
+    function update() {
+      if (!running) return;
+
+      distance += 0.4;
+      updateStage();
+      updateSkillCooldown();
+      updateBackground();
+
+      const now = performance.now();
+      if (!bossAlive && distance >= nextBossDist) {
+        spawnEnemy(true);
+        nextBossDist += 220 + stage*30;
+      } else if (!bossAlive && now - lastSpawn > spawnDelay) {
+        spawnEnemy(false);
+        lastSpawn = now;
+        if (spawnDelay > 600) spawnDelay -= 8;
+      }
+
+      shoot();
+
+      // 프로젝트일/충돌 처리 (역순 루프)
+      for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        p.x += p.speed;
+        drawProjectile(p);
+
+        let hit = false;
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const e = enemies[j];
+          if (!e.el) continue;
+          if (rectsOverlap(p.x, p.y, 20, 20, e.x, e.y, 40, 40)) {
+            let dmg = p.dmg;
+            let typeTxt = "";
+            if (Math.random() < player.critChance) {
+              dmg *= player.critMult;
+              typeTxt = "crit";
+              sound.playCrit();
+            } else {
+              sound.playHit();
+            }
+            dmg = Math.round(dmg);
+            e.hp -= dmg;
+            spawnFloatText(e.x+25, e.y-5, "-" + dmg, typeTxt);
+
+            if (e.hp <= 0) {
+              gold += e.gold;
+              gainExp(e.exp);
+              if (e.boss) {
+                bossAlive = false;
+                bossFlashEffect();
+                sound.playBossDeath();
+                spawnFloatText(e.x+25, e.y-5, "CLEAR!", "heal");
+              }
+              if (e.el && e.el.parentNode) e.el.parentNode.removeChild(e.el);
+              if (e.hpBar && e.hpBar.parentNode) e.hpBar.parentNode.removeChild(e.hpBar);
+              enemies.splice(j,1);
+            } else {
+              drawEnemy(e);
+            }
+
+            hit = true;
+            break;
+          }
+        }
+
+        if (hit) {
+          removeProjectileAt(i);
+          continue;
+        }
+
+        if (p.x > game.clientWidth + 40) {
+          removeProjectileAt(i);
+        }
+      }
+
+      // 적 이동/플레이어 충돌
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        e.x -= e.speed;
+        drawEnemy(e);
+
+        if (e.x < player.x + 14) {
+          const dmg = Math.max(1, e.dmg - player.def);
+          player.hp -= dmg * 0.08;
+          spawnFloatText(player.x+30, player.y-5, "-" + Math.round(dmg*0.08), "");
+          sound.playHit();
+          if (player.hp <= 0) {
+            player.hp = 0;
+            updateUI();
+            drawPlayer();
+            gameOver();
+            return;
+          }
+          drawPlayer();
+        }
+
+        if (e.x + 40 < -20) {
+          if (e.el && e.el.parentNode) e.el.parentNode.removeChild(e.el);
+          if (e.hpBar && e.hpBar.parentNode) e.hpBar.parentNode.removeChild(e.hpBar);
+          enemies.splice(i,1);
+        }
+      }
+
+      updateUI();
+    }
+
+    btnDamage.addEventListener("click", function() {
+      const cost = 80;
+      if (gold < cost) {
+        showMessage("골드가 부족합니다! ("+cost+"G 필요)");
+        return;
+      }
+      gold -= cost;
+      player.atk += 5 + Math.floor(player.level/2);
+      atkText.textContent = Math.round(player.atk);
+      goldText.textContent = gold;
+      updateProjectileTier();
+      showMessage("무기 강화! 공격력이 증가했습니다.");
+      spawnFloatText(player.x+30, player.y-10, "ATK UP", "heal");
+    });
+
+    btnHealth.addEventListener("click", function() {
+      const cost = 80;
+      if (gold < cost) {
+        showMessage("골드가 부족합니다! ("+cost+"G 필요)");
+        return;
+      }
+      gold -= cost;
+      const gain = 25 + Math.floor(player.level*1.5);
+      player.maxHp += gain;
+      player.hp = player.maxHp;
+      hpText.textContent = Math.round(player.hp);
+      hpMaxText.textContent = Math.round(player.maxHp);
+      goldText.textContent = gold;
+      showMessage("갑옷 강화! 최대 HP가 증가했습니다.");
+      spawnFloatText(player.x+30, player.y-10, "HP UP", "heal");
+      drawPlayer();
+    });
+
+    btnSkill.addEventListener("click", function() {
+      if (skillCooldownMs > 0) return;
+      if (enemies.length === 0) {
+        showMessage("공격할 적이 없습니다.");
+        return;
+      }
+      skillCooldownMs = skillTotalCd;
+      showMessage("💥 불소 폭발! 화면 전체의 세균을 공격합니다.");
+      sound.playSkill();
+      enemies.slice().forEach((e) => {
+        const dmg = Math.round(player.atk * 1.8);
+        e.hp -= dmg;
+        spawnFloatText(e.x+25, e.y-5, "-" + dmg, "crit");
+        if (e.hp <= 0) {
+          gold += e.gold;
+          gainExp(e.exp);
+          if (e.boss) {
+            bossAlive = false;
+            bossFlashEffect();
+            sound.playBossDeath();
+          }
+          if (e.el && e.el.parentNode) e.el.parentNode.removeChild(e.el);
+          if (e.hpBar && e.hpBar.parentNode) e.hpBar.parentNode.removeChild(e.hpBar);
+          enemies = enemies.filter(en => en !== e);
+        } else {
+          drawEnemy(e);
+        }
+      });
+      updateUI();
+    });
+
+    btnPause.addEventListener("click", function() {
+      running = !running;
+      btnPause.textContent = running ? "⏸ 일시정지" : "▶ 다시 시작";
+      showMessage(running ? "다시 전진!" : "일시정지 중입니다.");
+    });
+
+    window.addEventListener("load", function() {
+      createPlayer();
+      showMessage("화면을 한 번 탭하면 소리가 켜집니다 🎵");
+      setInterval(update, TICK);
+    });
+  </script>
+</body>
+</html>
