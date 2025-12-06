@@ -23,7 +23,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  padding: 6px 10px 4px;
+  padding: 6px 10px 6px;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
   z-index: 20;
@@ -33,7 +33,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 #logo-mark {
@@ -58,7 +58,7 @@ body {
   justify-content: space-between;
   font-size: 11px;
   font-weight: 600;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .stat-row span {
@@ -73,11 +73,11 @@ body {
   color: #6b7280;
 }
 
-/* 게임 영역 */
+/* 게임 영역 : 화면 위쪽 절반만 사용 */
 #game-area {
   position: fixed;
-  top: 70px;            /* 상단 패널 높이 */
-  bottom: 84px;         /* 하단 패널 높이 */
+  top: 90px;      /* 상단 패널 전체를 피해서 시작 */
+  bottom: 180px;  /* 아래 쪽을 크게 남김 (상점 공간) */
   left: 0;
   right: 0;
   overflow: hidden;
@@ -96,13 +96,13 @@ body {
   left: 0;
   bottom: 0;
   width: 200%;
-  height: 30%;
+  height: 35%;
   background: repeating-linear-gradient(
     -12deg,
     #4db6ac 0px,
-    #4db6ac 50px,
-    #26a69a 50px,
-    #26a69a 100px
+    #4db6ac 60px,
+    #26a69a 60px,
+    #26a69a 120px
   );
   animation: groundScroll 7s linear infinite;
 }
@@ -119,7 +119,7 @@ body {
 /* 엔티티 공통 */
 .entity {
   position: absolute;
-  bottom: 30%;
+  bottom: 35%;
   font-size: 48px;
   user-select: none;
   pointer-events: none;
@@ -146,14 +146,15 @@ body {
   text-shadow: 0 0 4px rgba(234, 179, 8, 0.7);
 }
 
+.projectile.p1 {
+  text-shadow: 0 0 4px rgba(234, 179, 8, 0.9);
+}
 .projectile.p2 {
   text-shadow: 0 0 4px rgba(56, 189, 248, 0.9);
 }
-
 .projectile.p3 {
   text-shadow: 0 0 4px rgba(244, 114, 182, 0.9);
 }
-
 .projectile.p4 {
   text-shadow: 0 0 4px rgba(251, 113, 133, 0.9);
 }
@@ -161,9 +162,7 @@ body {
 /* HP 바 */
 .hp-bar {
   position: absolute;
-  bottom: 30%;
-  transform: translateY(40px);
-  width: 48px;
+  width: 52px;
   height: 6px;
   border-radius: 4px;
   background: #fecaca;
@@ -177,13 +176,13 @@ body {
   transition: width 0.1s linear;
 }
 
-/* 하단 패널 */
+/* 하단 패널 : 넓게 */
 #bottom-panel {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 4px 6px 8px;
+  padding: 8px 8px 10px;
   background: rgba(248, 250, 252, 0.98);
   box-shadow: 0 -2px 4px rgba(15, 23, 42, 0.1);
   z-index: 20;
@@ -191,13 +190,13 @@ body {
 
 #shop-row {
   display: flex;
-  gap: 4px;
-  margin-bottom: 4px;
+  gap: 6px;
+  margin-bottom: 6px;
 }
 
 #control-row {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 button {
@@ -209,8 +208,8 @@ button {
   flex: 1;
   border-radius: 999px;
   border: none;
-  padding: 6px 4px;
-  font-size: 11px;
+  padding: 8px 4px;
+  font-size: 12px;
   font-weight: 700;
   color: #ffffff;
   background: #0284c7;
@@ -233,8 +232,8 @@ button {
   flex: 2;
   border-radius: 999px;
   border: none;
-  padding: 6px 4px;
-  font-size: 12px;
+  padding: 8px 4px;
+  font-size: 13px;
   font-weight: 800;
   color: #f9fafb;
   background: #f97316;
@@ -244,8 +243,8 @@ button {
   flex: 1;
   border-radius: 999px;
   border: none;
-  padding: 6px 4px;
-  font-size: 12px;
+  padding: 8px 4px;
+  font-size: 13px;
   font-weight: 700;
   color: #0f172a;
   background: #e5e7eb;
@@ -327,7 +326,7 @@ button {
   }
 }
 
-/* 반응형 약간 여유 */
+/* 반응형 : 큰 화면에서 가운데 정렬 */
 @media (min-width: 768px) {
   #top-panel {
     left: 50%;
