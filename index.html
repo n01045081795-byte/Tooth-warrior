@@ -41,6 +41,8 @@
       font-size: 11px;
       margin-bottom: 4px;
       padding: 0 2px;
+      flex-wrap: wrap;
+      gap: 4px;
     }
     #message {
       text-align: center;
@@ -49,12 +51,35 @@
       margin-bottom: 4px;
       color: #111827;
     }
+    /* 로고 영역 */
+    #logoBar {
+      max-width: 640px;
+      margin: 0 auto 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #logoBar .logo {
+      background: #ffffff;
+      border-radius: 999px;
+      padding: 4px 10px;
+      box-shadow: 0 2px 6px rgba(15,23,42,0.15);
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #logoBar .logo span.icon {
+      font-size: 16px;
+    }
+
     #game {
       position: relative;
       width: 100%;
       max-width: 640px;
       margin: 0 auto;
-      /* 스크롤되는 패턴 + 하늘/잇몸 그라데이션 */
       background:
         repeating-linear-gradient(
           -10deg,
@@ -90,6 +115,7 @@
       text-shadow: 0 0 6px rgba(0,0,0,0.4);
     }
     .projectile { font-size: 22px; }
+
     .hp-bar {
       position:absolute;
       left:50%;
@@ -121,6 +147,7 @@
       0% { opacity:1; transform: translate(-50%,0); }
       100% { opacity:0; transform: translate(-50%,-24px); }
     }
+
     #buttons {
       max-width:640px;
       margin: 6px auto 12px;
@@ -141,10 +168,13 @@
       box-shadow:0 2px 4px rgba(15,23,42,0.15);
       white-space:nowrap;
     }
-    #btnDamage { background:#3b82f6; }
-    #btnHealth { background:#16a34a; }
-    #btnSkill  { background:#a855f7; }
-    #btnPause  { background:#f97316; }
+    #btnWeapon { background:#3b82f6; }
+    #btnArmor  { background:#16a34a; }
+    #btnShield { background:#0ea5e9; }
+    #btnFluoride { background:#a855f7; }
+    #btnFluorideCd { background:#f97316; }
+    #btnSkill  { background:#6366f1; }
+    #btnPause  { background:#6b7280; }
     button:disabled {
       opacity:0.55;
       cursor:default;
@@ -162,23 +192,82 @@
       pointer-events:none;
       transition: opacity 0.12s ease-out;
     }
+
+    /* 게임오버 오버레이 */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .hidden { display: none; }
+    .gameover-box {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 18px 16px;
+      max-width: 260px;
+      width: 80%;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(15,23,42,0.35);
+      font-size: 13px;
+    }
+    .gameover-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #b91c1c;
+    }
+    .gameover-text {
+      margin-bottom: 12px;
+      color: #111827;
+    }
+    .gameover-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      margin: 2px 4px;
+      cursor: pointer;
+    }
+    .gameover-btn.main {
+      background: #ef4444;
+      color: #fff;
+    }
+    .gameover-btn.sub {
+      background: #e5e7eb;
+      color: #111827;
+    }
   </style>
 </head>
 <body>
   <h1>🦷 치아 용사 자동 사냥 RPG ⚔️</h1>
+
+  <!-- 다봄치과 로고바 -->
+  <div id="logoBar">
+    <div class="logo">
+      <span class="icon">🏥</span>
+      <span>다봄치과 · 치아 용사 RPG</span>
+    </div>
+  </div>
+
   <div id="ui">
     <div id="statsTop">
       <span>HP: <span id="hpText">100</span> / <span id="hpMaxText">100</span></span>
       <span>ATK: <span id="atkText">10</span></span>
-      <span>Lv: <span id="lvText">1</span></span>
-      <span>EXP: <span id="expText">0</span>/<span id="needExpText">50</span></span>
       <span>골드: <span id="goldText">0</span></span>
       <span>거리: <span id="distText">0</span> m</span>
     </div>
     <div id="statsBottom">
       <span>스테이지: <span id="stageText">1</span></span>
-      <span>다음 보스까지: <span id="bossDistText">150</span> m</span>
-      <span>스킬 쿨타임: <span id="skillCdText">준비완료</span></span>
+      <span>무기 LV: <span id="weaponLvText">1</span></span>
+      <span>방어 LV: <span id="armorLvText">1</span></span>
+      <span>불소 LV: <span id="fluorideLvText">1</span></span>
+      <span>불소쿨 LV: <span id="fluorideCdLvText">1</span></span>
+      <span>스킬 쿨: <span id="skillCdText">준비</span></span>
     </div>
     <div id="message">화면을 한 번 탭하면 소리가 켜집니다 🎵</div>
   </div>
@@ -188,32 +277,55 @@
     <div id="flashOverlay"></div>
   </div>
 
+  <!-- 게임오버 오버레이 -->
+  <div id="gameOverOverlay" class="overlay hidden">
+    <div class="gameover-box">
+      <div class="gameover-title">☠ 게임 오버</div>
+      <div class="gameover-text">
+        다시 도전해볼까요?
+      </div>
+      <button class="gameover-btn main" onclick="restartGame()">
+        🔁 새로 하기
+      </button>
+      <button class="gameover-btn sub" onclick="closeGameOver()">
+        그냥 둘래
+      </button>
+    </div>
+  </div>
+
   <div id="buttons">
-    <button id="btnDamage">🗡 무기 강화 (+5) / 80G</button>
-    <button id="btnHealth">🛡 갑옷 강화 (+25) / 80G</button>
-    <button id="btnSkill">💥 불소 폭발 (전체 공격)</button>
+    <button id="btnWeapon">🪥 무기 강화</button>
+    <button id="btnArmor">🧴 방어 강화</button>
+    <button id="btnShield">🧵 방패 강화</button>
+    <button id="btnFluoride">💥 불소 레벨업</button>
+    <button id="btnFluorideCd">⏱ 쿨타임 업</button>
+    <button id="btnSkill">💥 불소 폭발</button>
     <button id="btnPause">⏸ 일시정지</button>
   </div>
 
   <script>
     const game = document.getElementById("game");
     const flashOverlay = document.getElementById("flashOverlay");
+    const gameOverOverlay = document.getElementById("gameOverOverlay");
 
     const hpText = document.getElementById("hpText");
     const hpMaxText = document.getElementById("hpMaxText");
     const atkText  = document.getElementById("atkText");
-    const lvText   = document.getElementById("lvText");
-    const expText  = document.getElementById("expText");
-    const needExpText = document.getElementById("needExpText");
     const goldText = document.getElementById("goldText");
     const distText = document.getElementById("distText");
     const stageText = document.getElementById("stageText");
-    const bossDistText = document.getElementById("bossDistText");
+    const weaponLvText = document.getElementById("weaponLvText");
+    const armorLvText  = document.getElementById("armorLvText");
+    const fluorideLvText = document.getElementById("fluorideLvText");
+    const fluorideCdLvText = document.getElementById("fluorideCdLvText");
     const skillCdText  = document.getElementById("skillCdText");
     const message  = document.getElementById("message");
 
-    const btnDamage = document.getElementById("btnDamage");
-    const btnHealth = document.getElementById("btnHealth");
+    const btnWeapon = document.getElementById("btnWeapon");
+    const btnArmor  = document.getElementById("btnArmor");
+    const btnShield = document.getElementById("btnShield");
+    const btnFluoride = document.getElementById("btnFluoride");
+    const btnFluorideCd = document.getElementById("btnFluorideCd");
     const btnSkill  = document.getElementById("btnSkill");
     const btnPause  = document.getElementById("btnPause");
 
@@ -234,13 +346,17 @@
       critMult: 1.8,
       atkDelay: 380,
       lastAtk: 0,
-      level: 1,
-      exp: 0,
-      expNeed: 50,
       el: null,
       hpBar: null,
       hpFill: null
     };
+
+    // 장비/레벨 시스템
+    let weaponLevel = 1;
+    let armorLevel  = 1;
+    let shieldLevel = 1;
+    let fluorideLevel = 1;
+    let fluorideCooldownLevel = 1; // 1~10
 
     let distance = 0;
     let gold = 0;
@@ -256,11 +372,10 @@
     let bossAlive = false;
 
     let skillCooldownMs = 0;
-    const skillTotalCd = 18000; // 18초
 
-    let bgOffset = 0; // 배경 스크롤용
+    let bgOffset = 0;
 
-    // --- 사운드 매니저 (Web Audio API) ---
+    // --- 사운드 매니저 ---
     class SoundManager {
       constructor() {
         this.ctx = null;
@@ -333,9 +448,9 @@
         this.bgmOn = true;
         const loop = () => {
           if (!this.bgmOn || !this.ctx) return;
-          this.playTone(392, 0.5, 0.04, "sine");     // G4
-          setTimeout(()=>this.playTone(523.25,0.5,0.04,"sine"), 650); // C5
-          setTimeout(()=>this.playTone(659.25,0.5,0.04,"sine"), 1300); // E5
+          this.playTone(392, 0.5, 0.04, "sine");
+          setTimeout(()=>this.playTone(523.25,0.5,0.04,"sine"), 650);
+          setTimeout(()=>this.playTone(659.25,0.5,0.04,"sine"), 1300);
           setTimeout(loop, 2200);
         };
         loop();
@@ -362,25 +477,22 @@
 
     window.addEventListener("pointerdown", ensureAudio, { once:true });
 
-    // --- 투사체 단계 (무기 강화 시 이펙트 업그레이드) ---
-    const PROJECTILE_LEVELS = [
-      { ch:"·", size:14, color:"#eab308" },   // 0: 작은 점
-      { ch:"•", size:16, color:"#facc15" },   // 1: 큰 점
-      { ch:"✦", size:18, color:"#fbbf24" },   // 2: 작은 노란 반짝이
-      { ch:"✸", size:20, color:"#f97316" },   // 3: 큰 노란 반짝이
-      { ch:"✨", size:22, color:"#f97316" },   // 4: 노란 스파크
-      { ch:"💥", size:24, color:"#f97316" }    // 5: 폭발
+    // 발사체 스타일 (무기 레벨 기반, 10레벨마다 변화)
+    const PROJECTILE_STYLES = [
+      { ch: "·",  size:14, color:"#facc15" }, // 1~10
+      { ch: "•",  size:16, color:"#facc15" }, // 11~20
+      { ch: "✦", size:18, color:"#fbbf24" }, // 21~30
+      { ch: "✸", size:20, color:"#f97316" }, // 31~40
+      { ch: "✨", size:22, color:"#f97316" }, // 41~50
+      { ch: "💥", size:22, color:"#fb7185" }, // 51~60
+      { ch: "🌟", size:22, color:"#a855f7" }, // 61~70
+      { ch: "💫", size:24, color:"#22c55e" }, // 71~80
+      { ch: "🌈", size:24, color:"#38bdf8" }, // 81~90
+      { ch: "☄️", size:26, color:"#0ea5e9" }  // 91~100
     ];
-    let projectileTier = 0;
-
-    function updateProjectileTier() {
-      const atk = player.atk;
-      if (atk < 40) projectileTier = 0;
-      else if (atk < 80) projectileTier = 1;
-      else if (atk < 130) projectileTier = 2;
-      else if (atk < 200) projectileTier = 3;
-      else if (atk < 280) projectileTier = 4;
-      else projectileTier = 5;
+    function getProjectileStyle() {
+      const idx = Math.min(9, Math.floor((weaponLevel - 1) / 10));
+      return PROJECTILE_STYLES[idx];
     }
 
     function createPlayer() {
@@ -403,7 +515,6 @@
       player.hpBar = bar;
       player.hpFill = fill;
 
-      updateProjectileTier();
       drawPlayer();
       updateUI();
     }
@@ -450,7 +561,7 @@
 
       let enemy;
       if (isBoss) {
-        const bossHp = 280 + stage * 60;
+        const bossHp = 280 + stage * 80;
         enemy = {
           name:"거대 충치 괴수",
           emoji:"👾",
@@ -458,16 +569,16 @@
           y: groundTop - 90,
           hp: bossHp,
           maxHp: bossHp,
-          speed: 0.6,
-          dmg: 18 + stage * 2,
-          gold: 120 + stage*20,
+          speed: 0.6 + stage*0.02,
+          dmg: 18 + stage * 3,
+          gold: 180 + stage*30,
           exp: 80 + stage*20,
           boss:true,
           el:null, hpBar:null, hpFill:null
         };
       } else {
         const t = pickEnemyType();
-        const hpScale = 1 + (stage-1)*0.25;
+        const hpScale = 1 + (stage-1)*0.3;
         enemy = {
           name:t.name,
           emoji:t.emoji,
@@ -536,7 +647,7 @@
       if (enemies.length === 0) return;
 
       player.lastAtk = now;
-      const projStyle = PROJECTILE_LEVELS[projectileTier];
+      const projStyle = getProjectileStyle();
       const proj = {
         x: player.x + 38,
         y: player.y + 18,
@@ -569,7 +680,7 @@
     function updateSkillCooldown() {
       if (skillCooldownMs <= 0) {
         skillCooldownMs = 0;
-        skillCdText.textContent = "준비완료";
+        skillCdText.textContent = "준비";
         btnSkill.disabled = false;
       } else {
         skillCooldownMs -= TICK;
@@ -580,46 +691,37 @@
       }
     }
 
+    function getSkillDamage() {
+      // 불소 레벨에 따라 배수 증가
+      const baseMult = 1.5;
+      const addPerLv = 0.3;
+      const mult = baseMult + (fluorideLevel - 1) * addPerLv;
+      return Math.round(player.atk * mult);
+    }
+
+    function getSkillCooldown() {
+      const baseSkillCooldown = 18000; // 18초
+      const minSkillCooldown  = 2000;  // 2초
+      const maxLevel = 10;
+      const lvl = Math.min(fluorideCooldownLevel, maxLevel);
+      const step = (baseSkillCooldown - minSkillCooldown) / (maxLevel - 1);
+      const value = baseSkillCooldown - step * (lvl - 1);
+      return Math.max(minSkillCooldown, Math.round(value));
+    }
+
     function updateUI() {
       hpText.textContent = Math.max(0, Math.round(player.hp));
       hpMaxText.textContent = Math.round(player.maxHp);
       atkText.textContent = Math.round(player.atk);
-      lvText.textContent = player.level;
-      expText.textContent = player.exp;
-      needExpText.textContent = player.expNeed;
-      goldText.textContent = gold;
+      goldText.textContent = Math.round(gold);
       distText.textContent = Math.floor(distance);
       stageText.textContent = stage;
-      const toBoss = Math.max(0, Math.floor(nextBossDist - distance));
-      bossDistText.textContent = bossAlive ? "보스 진행 중" : (toBoss + " m");
-    }
+      weaponLvText.textContent = weaponLevel;
+      armorLvText.textContent  = armorLevel;
+      fluorideLvText.textContent = fluorideLevel;
+      fluorideCdLvText.textContent = fluorideCooldownLevel;
 
-    function gainExp(amount) {
-      player.exp += amount;
-      while (player.exp >= player.expNeed) {
-        player.exp -= player.expNeed;
-        levelUp();
-      }
-      updateUI();
-    }
-
-    function levelUp() {
-      player.level++;
-      player.expNeed = Math.round(player.expNeed * 1.4);
-      const hpGain = 18;
-      const atkGain = 3;
-      player.maxHp += hpGain;
-      player.hp = player.maxHp;
-      player.atk += atkGain;
-      updateProjectileTier();
-      spawnFloatText(player.x+30, player.y-10, "레벨업!", "heal");
-      showMessage("🎉 레벨 " + player.level + " 달성! HP+"+hpGain+" ATK+"+atkGain);
-      sound.playLevelUp();
-    }
-
-    function gameOver() {
-      running = false;
-      showMessage("☠ 게임 오버! 새로고침하면 처음부터 다시 시작합니다.");
+      updateShopButtons();
     }
 
     function showMessage(text) {
@@ -635,7 +737,6 @@
     }
 
     function updateBackground() {
-      // 중간 속도 느낌
       bgOffset -= 0.8;
       game.style.backgroundPosition = `${bgOffset}px 0, 0 0`;
     }
@@ -664,6 +765,40 @@
       flashOnce();
     }
 
+    // 게임오버 + 새로하기
+    function gameOver() {
+      running = false;
+      showMessage("☠ 게임 오버!");
+      if (gameOverOverlay) {
+        gameOverOverlay.classList.remove("hidden");
+      }
+    }
+    function restartGame() {
+      location.reload();
+    }
+    function closeGameOver() {
+      if (gameOverOverlay) {
+        gameOverOverlay.classList.add("hidden");
+      }
+    }
+    window.restartGame = restartGame;
+    window.closeGameOver = closeGameOver;
+
+    function updateShopButtons() {
+      const weaponCost = Math.round(80 * Math.pow(weaponLevel, 1.3));
+      const armorCost  = Math.round(80 * Math.pow(armorLevel, 1.3));
+      const shieldCost = Math.round(80 * Math.pow(shieldLevel, 1.3));
+      const fluorideCost = Math.round(120 * Math.pow(fluorideLevel, 1.4));
+      const fluorideCdCost = Math.round(150 * Math.pow(fluorideCooldownLevel, 1.4));
+
+      btnWeapon.textContent = `🪥 무기 LV${weaponLevel} / ${weaponCost}G`;
+      btnArmor.textContent  = `🧴 방어 LV${armorLevel} / ${armorCost}G`;
+      btnShield.textContent = `🧵 방패 LV${shieldLevel} / ${shieldCost}G`;
+      btnFluoride.textContent = `💥 불소 LV${fluorideLevel} / ${fluorideCost}G`;
+      btnFluorideCd.textContent = `⏱ 쿨 LV${fluorideCooldownLevel} / ${fluorideCdCost}G`;
+      btnSkill.textContent = `💥 불소 폭발 (데미지 LV${fluorideLevel})`;
+    }
+
     function update() {
       if (!running) return;
 
@@ -684,7 +819,6 @@
 
       shoot();
 
-      // 프로젝트일/충돌 처리 (역순 루프)
       for (let i = projectiles.length - 1; i >= 0; i--) {
         const p = projectiles[i];
         p.x += p.speed;
@@ -710,7 +844,6 @@
 
             if (e.hp <= 0) {
               gold += e.gold;
-              gainExp(e.exp);
               if (e.boss) {
                 bossAlive = false;
                 bossFlashEffect();
@@ -733,13 +866,11 @@
           removeProjectileAt(i);
           continue;
         }
-
         if (p.x > game.clientWidth + 40) {
           removeProjectileAt(i);
         }
       }
 
-      // 적 이동/플레이어 충돌
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
         e.x -= e.speed;
@@ -747,8 +878,9 @@
 
         if (e.x < player.x + 14) {
           const dmg = Math.max(1, e.dmg - player.def);
-          player.hp -= dmg * 0.08;
-          spawnFloatText(player.x+30, player.y-5, "-" + Math.round(dmg*0.08), "");
+          const taken = dmg * 0.08;
+          player.hp -= taken;
+          spawnFloatText(player.x+30, player.y-5, "-" + Math.round(taken), "");
           sound.playHit();
           if (player.hp <= 0) {
             player.hp = 0;
@@ -770,37 +902,80 @@
       updateUI();
     }
 
-    btnDamage.addEventListener("click", function() {
-      const cost = 80;
+    // 상점 버튼들
+    btnWeapon.addEventListener("click", function() {
+      const cost = Math.round(80 * Math.pow(weaponLevel, 1.3));
       if (gold < cost) {
-        showMessage("골드가 부족합니다! ("+cost+"G 필요)");
+        showMessage(`골드 부족! (필요: ${cost}G)`);
         return;
       }
       gold -= cost;
-      player.atk += 5 + Math.floor(player.level/2);
-      atkText.textContent = Math.round(player.atk);
-      goldText.textContent = gold;
-      updateProjectileTier();
-      showMessage("무기 강화! 공격력이 증가했습니다.");
-      spawnFloatText(player.x+30, player.y-10, "ATK UP", "heal");
+      weaponLevel++;
+      player.atk += 5 + Math.floor(weaponLevel/2);
+      spawnFloatText(player.x+30, player.y-10, "무기 UP", "heal");
+      showMessage(`무기 LV${weaponLevel} 강화! 공격력 증가`);
+      updateUI();
     });
 
-    btnHealth.addEventListener("click", function() {
-      const cost = 80;
+    btnArmor.addEventListener("click", function() {
+      const cost = Math.round(80 * Math.pow(armorLevel, 1.3));
       if (gold < cost) {
-        showMessage("골드가 부족합니다! ("+cost+"G 필요)");
+        showMessage(`골드 부족! (필요: ${cost}G)`);
         return;
       }
       gold -= cost;
-      const gain = 25 + Math.floor(player.level*1.5);
+      armorLevel++;
+      const gain = 25 + armorLevel * 2;
       player.maxHp += gain;
       player.hp = player.maxHp;
-      hpText.textContent = Math.round(player.hp);
-      hpMaxText.textContent = Math.round(player.maxHp);
-      goldText.textContent = gold;
-      showMessage("갑옷 강화! 최대 HP가 증가했습니다.");
-      spawnFloatText(player.x+30, player.y-10, "HP UP", "heal");
+      spawnFloatText(player.x+30, player.y-10, "방어 UP", "heal");
+      showMessage(`방어 LV${armorLevel} 강화! 최대 HP 증가`);
+      updateUI();
       drawPlayer();
+    });
+
+    btnShield.addEventListener("click", function() {
+      const cost = Math.round(80 * Math.pow(shieldLevel, 1.3));
+      if (gold < cost) {
+        showMessage(`골드 부족! (필요: ${cost}G)`);
+        return;
+      }
+      gold -= cost;
+      shieldLevel++;
+      player.def += 1;
+      spawnFloatText(player.x+30, player.y-10, "방패 UP", "heal");
+      showMessage(`방패 LV${shieldLevel} 강화! 데미지 감소`);
+      updateUI();
+    });
+
+    btnFluoride.addEventListener("click", function() {
+      const cost = Math.round(120 * Math.pow(fluorideLevel, 1.4));
+      if (gold < cost) {
+        showMessage(`골드 부족! (필요: ${cost}G)`);
+        return;
+      }
+      gold -= cost;
+      fluorideLevel++;
+      spawnFloatText(player.x+30, player.y-10, "불소 UP", "crit");
+      showMessage(`불소 LV${fluorideLevel} 강화! 스킬 데미지 증가`);
+      updateUI();
+    });
+
+    btnFluorideCd.addEventListener("click", function() {
+      if (fluorideCooldownLevel >= 10) {
+        showMessage("쿨타임 LV는 10이 최대입니다.");
+        return;
+      }
+      const cost = Math.round(150 * Math.pow(fluorideCooldownLevel, 1.4));
+      if (gold < cost) {
+        showMessage(`골드 부족! (필요: ${cost}G)`);
+        return;
+      }
+      gold -= cost;
+      fluorideCooldownLevel++;
+      spawnFloatText(player.x+30, player.y-10, "쿨타임 UP", "heal");
+      showMessage(`불소쿨 LV${fluorideCooldownLevel} 강화! 쿨타임 감소`);
+      updateUI();
     });
 
     btnSkill.addEventListener("click", function() {
@@ -809,16 +984,16 @@
         showMessage("공격할 적이 없습니다.");
         return;
       }
-      skillCooldownMs = skillTotalCd;
-      showMessage("💥 불소 폭발! 화면 전체의 세균을 공격합니다.");
+      const dmg = getSkillDamage();
+      skillCooldownMs = getSkillCooldown();
+      showMessage(`💥 불소 폭발! (데미지 x${(dmg/player.atk).toFixed(1)})`);
       sound.playSkill();
+
       enemies.slice().forEach((e) => {
-        const dmg = Math.round(player.atk * 1.8);
         e.hp -= dmg;
         spawnFloatText(e.x+25, e.y-5, "-" + dmg, "crit");
         if (e.hp <= 0) {
           gold += e.gold;
-          gainExp(e.exp);
           if (e.boss) {
             bossAlive = false;
             bossFlashEffect();
