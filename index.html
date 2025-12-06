@@ -1,52 +1,71 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>🦷 Tooth Warrior RPG</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🦷 치아 용사 자동 사냥 RPG</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<!-- 상단 UI -->
-<div id="top-ui">
-    <img id="logo" src="https://i.imgur.com/4D1gY47.png" alt="다봄치과 로고">
-    <div id="ui-hp">HP</div>
-    <div id="ui-atk">ATK</div>
-    <div id="ui-armor">DEF</div>
-    <div id="ui-flu">FLU</div>
-    <div id="ui-cd">CD</div>
-    <div id="ui-gold">0 Gold</div>
-    <div id="ui-dist">0 m</div>
-</div>
-
-<!-- 게임화면 -->
-<div id="game-area">
-    <div class="bg-layer"></div>
-    <div id="ground"></div>
-</div>
-
-<!-- 스킬 버튼 -->
-<button id="skill-btn">💥</button>
-
-<!-- 상점 -->
-<div id="shop">
-    <button id="shop-atk" class="shop-btn">🪥무기</button>
-    <button id="shop-def" class="shop-btn">🧴치약</button>
-    <button id="shop-flu" class="shop-btn">🧵치실</button>
-</div>
-
-<!-- 게임 오버 -->
-<div id="gameover">
-    <div class="gameover-box">
-        <div>☠ 게임 오버</div>
-        <button id="go-restart" class="gameover-btn go-main">🔁 다시하기</button>
+  <!-- 상단 로고 + 스탯 패널 -->
+  <header id="top-panel">
+    <div id="logo-row">
+      <div id="logo-mark">🦷</div>
+      <div id="logo-text">
+        <div class="logo-main">다봄치과의원</div>
+        <div class="logo-sub">DABOM Dental Clinic</div>
+      </div>
     </div>
-</div>
 
-<!-- 이펙트 -->
-<div id="flash"></div>
+    <div class="stat-row" id="stat-row-1">
+      <span id="stat-hp"></span>
+      <span id="stat-atk"></span>
+      <span id="stat-def"></span>
+    </div>
+    <div class="stat-row" id="stat-row-2">
+      <span id="stat-level"></span>
+      <span id="stat-gold"></span>
+      <span id="stat-distance"></span>
+      <span id="stat-stage"></span>
+    </div>
+    <div id="stat-message">화면을 한 번 탭하면 사운드가 켜집니다 🎵</div>
+  </header>
 
-<script src="game.js"></script>
+  <!-- 게임 영역 -->
+  <main id="game-area">
+    <div id="sky"></div>
+    <div id="ground"></div>
+
+    <!-- 플레이어 -->
+    <div id="player" class="entity player">🦷</div>
+  </main>
+
+  <!-- 하단 상점 + 컨트롤 -->
+  <section id="bottom-panel">
+    <div id="shop-row">
+      <button id="btn-shop-weapon" class="shop-btn">🪥 무기 강화</button>
+      <button id="btn-shop-armor" class="shop-btn">🧴 갑옷 강화</button>
+      <button id="btn-shop-fluoride" class="shop-btn">🧵 불소 레벨</button>
+    </div>
+    <div id="control-row">
+      <button id="btn-skill" class="skill-btn">💥 불소 폭발</button>
+      <button id="btn-pause" class="pause-btn">⏸ 일시정지</button>
+    </div>
+  </section>
+
+  <!-- 게임 오버 오버레이 -->
+  <div id="overlay-gameover" class="overlay hidden">
+    <div class="overlay-box">
+      <h2>☠ 게임 오버</h2>
+      <p id="gameover-summary"></p>
+      <button id="btn-restart" class="primary">🔁 다시하기</button>
+    </div>
+  </div>
+
+  <!-- 보스 처치 플래시 -->
+  <div id="screen-flash"></div>
+
+  <script src="game.js"></script>
 </body>
 </html>
