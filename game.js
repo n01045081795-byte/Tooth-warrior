@@ -1,5 +1,5 @@
 // ===============================
-// 치아 용사 RPG - 게임 로직 (단순/안정 버전)
+// 치아 용사 RPG - 게임 로직
 // ===============================
 
 const SAVE_KEY = "toothWarriorSaveV1";
@@ -8,6 +8,7 @@ const SAVE_KEY = "toothWarriorSaveV1";
 const gameArea = document.getElementById("game-area");
 const playerEl = document.getElementById("player");
 const flashEl = document.getElementById("screen-flash");
+const gearInfoEl = document.getElementById("gear-info");
 
 // 스탯 표시
 const hpEl = document.getElementById("stat-hp");
@@ -50,13 +51,68 @@ const state = {
   saveTimer: 0
 };
 
-const RUN_SPEED = 40; // 거리 증가 속도 (m/s 가정)
+const RUN_SPEED = 40; // 거리 증가 속도
 
 let enemySpawnTimer = 0;
 let fireTimer = 0;
 
 let enemies = [];
 let projectiles = [];
+
+// 장비 이름들
+const weaponNames = [
+  "나무 칫솔",
+  "플라스틱 칫솔",
+  "고급 칫솔",
+  "스테인리스 칫솔",
+  "티타늄 칫솔",
+  "황금 칫솔",
+  "다이아 칫솔",
+  "플라즈마 칫솔",
+  "레이저 칫솔",
+  "우주 칫솔",
+  "코스믹 칫솔",
+  "갤럭시 칫솔",
+  "퀀텀 칫솔",
+  "차원 칫솔",
+  "궁극 칫솔"
+];
+
+const armorNames = [
+  "일반 치약",
+  "시린이 치약",
+  "저불소 치약",
+  "고불소 치약",
+  "초고불소 치약",
+  "프리미엄 치약",
+  "황금 치약",
+  "다이아 치약",
+  "플라즈마 치약",
+  "레이저 치약",
+  "코스믹 치약",
+  "갤럭시 치약",
+  "퀀텀 치약",
+  "차원 치약",
+  "궁극 치약"
+];
+
+const fluNames = [
+  "일반 치실",
+  "왁스 치실",
+  "스펀지 치실",
+  "고급 치실",
+  "프리미엄 치실",
+  "황금 치실",
+  "다이아 치실",
+  "플라즈마 치실",
+  "레이저 치실",
+  "코스믹 치실",
+  "갤럭시 치실",
+  "퀀텀 치실",
+  "차원 치실",
+  "궁극 치실",
+  "전설 치실"
+];
 
 // ------------ 사운드(Web Audio) ------------
 let audioCtx = null;
@@ -163,26 +219,56 @@ function formatNumber(n) {
   return n.toLocaleString("ko-KR");
 }
 
+function getArrayName(arr, lv) {
+  return arr[Math.min(lv - 1, arr.length - 1)] + ` (Lv.${lv})`;
+}
+
+// 무기 레벨에 따라 발사체 모양/색/크기 변경
 function getProjectileIcon() {
-  const idx = Math.floor((state.weaponLevel - 1) / 10);
-  const table = ["·", "•", "✦", "✸", "✨", "🌟", "💫", "🔥", "⚡", "🌈"];
-  return table[Math.min(idx, table.length - 1)];
+  const icons = ["•", "✦", "✸", "✨", "💫", "🔥", "⚡", "🌈", "🌟", "💎"];
+  const idx = Math.min(state.weaponLevel - 1, icons.length - 1);
+  return icons[idx];
 }
 
 function getProjectileClass() {
-  const step = Math.floor((state.weaponLevel - 1) / 10);
-  const list = ["", "p1", "p2", "p3", "p4"];
-  return list[Math.min(step, list.length - 1)];
+  const lv = state.weaponLevel;
+  if (lv < 3) return "";
+  if (lv < 5) return "p1";
+  if (lv < 7) return "p2";
+  if (lv < 9) return "p3";
+  return "p4";
 }
 
 function getFireInterval() {
-  // 무기 레벨이 올라갈수록 공격 속도 증가 (최소 0.18초)
-  return Math.max(0.18, 0.6 - (state.weaponLevel - 1) * 0.02);
+  // 무기 레벨이 올라갈수록 공격 속도 증가 (최소 0.16초)
+  return Math.max(0.16, 0.6 - (state.weaponLevel - 1) * 0.02);
 }
 
 function getSkillCooldown() {
   // 불소 레벨이 올라갈수록 쿨타임 감소 (최소 2초)
   return Math.max(2, 20 - (state.fluLevel - 1) * 1.5);
+}
+
+// 캐릭터 외형 변화
+function updatePlayerAppearance() {
+  let icon = "🦷";
+
+  if (state.level >= 15) {
+    icon = "👑🦷";
+  } else if (state.level >= 10) {
+    icon = "🦷✨";
+  } else if (state.level >= 5) {
+    icon = "🪥🦷";
+  }
+
+  playerEl.textContent = icon;
+}
+
+function updateGearInfo() {
+  const w = getArrayName(weaponNames, state.weaponLevel);
+  const a = getArrayName(armorNames, state.armorLevel);
+  const f = getArrayName(fluNames, state.fluLevel);
+  gearInfoEl.textContent = `🪥 ${w}  |  🧴 ${a}  |  🧵 ${f}`;
 }
 
 function updateUI() {
@@ -201,6 +287,9 @@ function updateUI() {
     btnSkill.textContent = "💥 불소 폭발 (준비완료)";
     btnSkill.classList.remove("cooldown");
   }
+
+  updatePlayerAppearance();
+  updateGearInfo();
 }
 
 // ------------ 적 & 투사체 ------------
@@ -249,7 +338,7 @@ function spawnProjectile() {
   if (cls) el.classList.add(cls);
   el.textContent = getProjectileIcon();
 
-  const bottomPercent = 35;
+  const bottomPercent = 40;
   el.style.bottom = bottomPercent + "%";
 
   const startX = playerEl.offsetLeft + playerEl.offsetWidth + 4;
@@ -338,7 +427,7 @@ function stepGame(dt) {
   // 이동 거리
   state.distance += RUN_SPEED * dt;
 
-  // 스폰 타이머 (1.2초마다 적, 5번째마다 보스)
+  // 스폰 타이머
   enemySpawnTimer += dt;
   if (enemySpawnTimer >= 1.2) {
     enemySpawnTimer = 0;
@@ -358,7 +447,7 @@ function stepGame(dt) {
     state.skillCooldown = Math.max(0, state.skillCooldown - dt);
   }
 
-  // 적 이동/충돌 (뒤에서부터)
+  // 적 이동/충돌
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i];
     e.x -= e.speed * dt;
@@ -524,4 +613,4 @@ btnRestart.addEventListener("click", restartGame);
 // 첫 UI 갱신
 updateUI();
 msgEl.textContent =
-  "자동 사냥 시작! 상점에서 칫솔/치약/치실(불소)을 강화해보세요 🪥";
+  "자동 사냥 시작! 상점에서 칫솔·치약·치실(불소)을 강화해보세요 🪥";
