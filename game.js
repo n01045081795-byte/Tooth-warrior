@@ -1,616 +1,729 @@
-// ===============================
-// 치아 용사 RPG - 게임 로직
-// ===============================
+// ─────────────────────────────────────
+// 기본 설정
+// ─────────────────────────────────────
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-const SAVE_KEY = "toothWarriorSaveV2";
+const hpText = document.getElementById("hpText");
+const levelText = document.getElementById("levelText");
+const atkText = document.getElementById("atkText");
+const goldText = document.getElementById("goldText");
+const defText = document.getElementById("defText");
+const distanceText = document.getElementById("distanceText");
+const messageText = document.getElementById("messageText");
 
-// DOM 참조
-const gameArea = document.getElementById("game-area");
-const playerEl = document.getElementById("player");
-const flashEl = document.getElementById("screen-flash");
-const gearInfoEl = document.getElementById("gear-info");
+const weaponNameText = document.getElementById("weaponName");
+const armorNameText = document.getElementById("armorName");
+const flossNameText = document.getElementById("flossName");
 
-// 스탯 표시
-const hpEl = document.getElementById("stat-hp");
-const atkEl = document.getElementById("stat-atk");
-const defEl = document.getElementById("stat-def");
-const levelEl = document.getElementById("stat-level");
-const goldEl = document.getElementById("stat-gold");
-const distEl = document.getElementById("stat-distance");
-const stageEl = document.getElementById("stat-stage");
-const msgEl = document.getElementById("stat-message");
+const btnWeaponUpgrade = document.getElementById("btnWeaponUpgrade");
+const btnArmorUpgrade = document.getElementById("btnArmorUpgrade");
+const btnFluorUpgrade = document.getElementById("btnFluorUpgrade");
+const btnSkill = document.getElementById("btnSkill");
+const btnPause = document.getElementById("btnPause");
+const btnRestart = document.getElementById("btnRestart");
 
-// 버튼
-const btnShopWeapon = document.getElementById("btn-shop-weapon");
-const btnShopArmor = document.getElementById("btn-shop-armor");
-const btnShopFluoride = document.getElementById("btn-shop-fluoride");
-const btnSkill = document.getElementById("btn-skill");
-const btnPause = document.getElementById("btn-pause");
+const shopWeaponNext = document.getElementById("shopWeaponNext");
+const shopWeaponCost = document.getElementById("shopWeaponCost");
+const shopArmorNext = document.getElementById("shopArmorNext");
+const shopArmorCost = document.getElementById("shopArmorCost");
+const shopFlossNext = document.getElementById("shopFlossNext");
+const shopFlossCost = document.getElementById("shopFlossCost");
 
-const overlay = document.getElementById("overlay-gameover");
-const gameoverSummary = document.getElementById("gameover-summary");
-const btnRestart = document.getElementById("btn-restart");
+const bgm = document.getElementById("bgm");
+const sfxHit = document.getElementById("sfxHit");
+const sfxSkill = document.getElementById("sfxSkill");
 
-// ------------ 게임 상태 ------------
-const state = {
-  hp: 100,
-  maxHp: 100,
-  atk: 10,
-  weaponLevel: 1,
-  armorLevel: 1,
-  fluLevel: 1,
-  level: 1,
-  exp: 0,
-  expToNext: 40,
-  gold: 0,
+let audioActivated = false;
+
+// 저장 키 (버전 올려서 이전 세이브와 분리)
+const SAVE_KEY = "toothWarriorSaveV3";
+
+// ─────────────────────────────────────
+// 장비 데이터
+// ─────────────────────────────────────
+const WEAPONS = [
+  { name: "나무 칫솔", atk: 10, icon: "🪥" },
+  { name: "플라스틱 칫솔", atk: 15, icon: "🪥" },
+  { name: "고급 칫솔", atk: 22, icon: "🪥✨" },
+  { name: "미세모 칫솔", atk: 30, icon: "🪥💫" },
+  { name: "전동 칫솔", atk: 40, icon: "⚡🪥" },
+  { name: "티타늄 칫솔", atk: 55, icon: "🪥🛡️" },
+  { name: "황금 칫솔", atk: 75, icon: "🪥💛" },
+  { name: "다이아 칫솔", atk: 100, icon: "💎🪥" }
+];
+
+const ARMORS = [
+  { name: "일반 치약", def: 0, icon: "🧴" },
+  { name: "시린이 치약", def: 1, icon: "🧴❄️" },
+  { name: "저불소 치약", def: 2, icon: "🧴" },
+  { name: "고불소 치약", def: 3, icon: "🧴✨" },
+  { name: "잇몸 케어 치약", def: 4, icon: "🧴🌿" },
+  { name: "프리미엄 치약", def: 5, icon: "🧴💎" },
+  { name: "황금 치약", def: 7, icon: "🧴💛" },
+  { name: "다이아 치약", def: 10, icon: "🧴💠" }
+];
+
+const FLOSS = [
+  { name: "일반 치실", skillPower: 40, cooldown: 20, icon: "🧵" },
+  { name: "왁스 치실", skillPower: 60, cooldown: 18, icon: "🧵✨" },
+  { name: "스펀지 치실", skillPower: 90, cooldown: 16, icon: "🧵💫" },
+  { name: "고급 치실", skillPower: 130, cooldown: 14, icon: "🧵💎" },
+  { name: "프리미엄 치실", skillPower: 180, cooldown: 12, icon: "🧵🔥" },
+  { name: "황금 치실", skillPower: 250, cooldown: 8, icon: "🧵💛" },
+  { name: "다이아 치실", skillPower: 350, cooldown: 5, icon: "🧵💠" }
+];
+
+// ─────────────────────────────────────
+// 게임 상태
+// ─────────────────────────────────────
+const STATE = {
+  running: true,
+  lastTime: 0,
   distance: 0,
+  enemies: [],
+  projectiles: [],
+  spawnTimer: 0,
+  spawnInterval: 1300,
   stage: 1,
-  alive: true,
-  paused: false,
-  skillCooldown: 0,
-  saveTimer: 0
+  skillTimer: 0,
+  bannerTimer: 0
 };
 
-const RUN_SPEED = 40; // 거리 증가 속도
+const PLAYER = {
+  x: 0,
+  y: 0,
+  radius: 20,
+  maxHp: 100,
+  hp: 100,
+  level: 1,
+  exp: 0,
+  gold: 0,
 
-let enemySpawnTimer = 0;
-let fireTimer = 0;
+  weaponLevel: 0, // index in WEAPONS
+  armorLevel: 0, // index in ARMORS
+  flossLevel: 0, // index in FLOSS
 
-let enemies = [];
-let projectiles = [];
-
-// 장비 이름들
-const weaponNames = [
-  "나무 칫솔",
-  "플라스틱 칫솔",
-  "고급 칫솔",
-  "스테인리스 칫솔",
-  "티타늄 칫솔",
-  "황금 칫솔",
-  "다이아 칫솔",
-  "플라즈마 칫솔",
-  "레이저 칫솔",
-  "우주 칫솔",
-  "코스믹 칫솔",
-  "갤럭시 칫솔",
-  "퀀텀 칫솔",
-  "차원 칫솔",
-  "궁극 칫솔"
-];
-
-const armorNames = [
-  "일반 치약",
-  "시린이 치약",
-  "저불소 치약",
-  "고불소 치약",
-  "초고불소 치약",
-  "프리미엄 치약",
-  "황금 치약",
-  "다이아 치약",
-  "플라즈마 치약",
-  "레이저 치약",
-  "코스믹 치약",
-  "갤럭시 치약",
-  "퀀텀 치약",
-  "차원 치약",
-  "궁극 치약"
-];
-
-const fluNames = [
-  "일반 치실",
-  "왁스 치실",
-  "스펀지 치실",
-  "고급 치실",
-  "프리미엄 치실",
-  "황금 치실",
-  "다이아 치실",
-  "플라즈마 치실",
-  "레이저 치실",
-  "코스믹 치실",
-  "갤럭시 치실",
-  "퀀텀 치실",
-  "차원 치실",
-  "궁극 치실",
-  "전설 치실"
-];
-
-// ------------ 사운드(Web Audio) ------------
-let audioCtx = null;
-
-function ensureAudio() {
-  if (!audioCtx) {
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (e) {
-      audioCtx = null;
-    }
-  }
-}
-
-function playTone(freq, duration, type = "sine", gainValue = 0.18) {
-  if (!audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = type;
-  osc.frequency.value = freq;
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  gain.gain.setValueAtTime(gainValue, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(
-    0.001,
-    audioCtx.currentTime + duration
-  );
-  osc.start();
-  osc.stop(audioCtx.currentTime + duration);
-}
-
-function sfxHit() {
-  playTone(620, 0.05, "square", 0.16);
-}
-
-function sfxLevelUp() {
-  playTone(880, 0.1, "sine", 0.18);
-  setTimeout(() => playTone(1200, 0.1, "sine", 0.18), 90);
-}
-
-function sfxSkill() {
-  playTone(220, 0.15, "sawtooth", 0.22);
-  setTimeout(() => playTone(440, 0.15, "sawtooth", 0.18), 120);
-}
-
-// 첫 터치에서 오디오 허용
-document.body.addEventListener(
-  "pointerdown",
-  () => {
-    ensureAudio();
+  get atk() {
+    return WEAPONS[this.weaponLevel].atk;
   },
-  { once: true }
-);
+  get def() {
+    return ARMORS[this.armorLevel].def;
+  }
+};
 
-// ------------ 저장/불러오기 ------------
-function loadSave() {
+// ─────────────────────────────────────
+// 캔버스 크기 세팅
+// ─────────────────────────────────────
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  PLAYER.x = rect.width * 0.18;
+  PLAYER.y = rect.height * 0.55;
+}
+window.addEventListener("resize", resizeCanvas);
+
+// ─────────────────────────────────────
+// 유틸
+// ─────────────────────────────────────
+function randRange(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function playOnce(audio) {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    Object.assign(state, {
-      hp: data.maxHp ?? state.hp,
-      maxHp: data.maxHp ?? state.maxHp,
-      atk: data.atk ?? state.atk,
-      weaponLevel: data.weaponLevel ?? state.weaponLevel,
-      armorLevel: data.armorLevel ?? state.armorLevel,
-      fluLevel: data.fluLevel ?? state.fluLevel,
-      level: data.level ?? state.level,
-      exp: data.exp ?? state.exp,
-      expToNext: data.expToNext ?? state.expToNext,
-      gold: data.gold ?? state.gold,
-      distance: 0,
-      stage: data.stage ?? state.stage
-    });
-  } catch (e) {
-    console.warn("save load fail", e);
-  }
+    audio.currentTime = 0;
+    audio.play();
+  } catch (e) {}
 }
 
-function saveGame() {
-  try {
-    const data = {
-      maxHp: state.maxHp,
-      atk: state.atk,
-      weaponLevel: state.weaponLevel,
-      armorLevel: state.armorLevel,
-      fluLevel: state.fluLevel,
-      level: state.level,
-      exp: state.exp,
-      expToNext: state.expToNext,
-      gold: state.gold,
-      stage: state.stage
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.warn("save error", e);
-  }
+function showMessage(text) {
+  messageText.textContent = text;
 }
 
-loadSave();
-
-// ------------ 유틸 ------------
-function formatNumber(n) {
-  return n.toLocaleString("ko-KR");
+function showBanner(text) {
+  STATE.bannerTimer = 2; // 초 단위 (대략적인 느낌)
+  showMessage(text);
 }
 
-function getArrayName(arr, lv) {
-  return arr[Math.min(lv - 1, arr.length - 1)] + ` (Lv.${lv})`;
-}
+// ─────────────────────────────────────
+// 엔티티 생성
+// ─────────────────────────────────────
+function spawnEnemy() {
+  const rect = canvas.getBoundingClientRect();
+  const isBoss = Math.random() < 0.12;
 
-// 무기 레벨에 따라 발사체 모양/색/크기 변경
-function getProjectileIcon() {
-  const icons = ["•", "✦", "✸", "✨", "💫", "🔥", "⚡", "🌈", "🌟", "💎"];
-  const idx = Math.min(state.weaponLevel - 1, icons.length - 1);
-  return icons[idx];
-}
+  const baseHp = 40 + STATE.stage * 10;
+  const hp = isBoss ? baseHp * 4 : baseHp;
 
-function getProjectileClass() {
-  const lv = state.weaponLevel;
-  if (lv < 3) return "";
-  if (lv < 5) return "p1";
-  if (lv < 7) return "p2";
-  if (lv < 9) return "p3";
-  return "p4";
-}
-
-function getFireInterval() {
-  // 무기 레벨이 올라갈수록 공격 속도 증가 (최소 0.16초)
-  return Math.max(0.16, 0.6 - (state.weaponLevel - 1) * 0.02);
-}
-
-function getSkillCooldown() {
-  // 불소 레벨이 올라갈수록 쿨타임 감소 (최소 2초)
-  return Math.max(2, 20 - (state.fluLevel - 1) * 1.5);
-}
-
-// 캐릭터 외형 변화
-function updatePlayerAppearance() {
-  let icon = "🦷";
-
-  if (state.level >= 15) {
-    icon = "👑🦷";
-  } else if (state.level >= 10) {
-    icon = "🦷✨";
-  } else if (state.level >= 5) {
-    icon = "🪥🦷";
-  }
-
-  playerEl.textContent = icon;
-}
-
-function updateGearInfo() {
-  const w = getArrayName(weaponNames, state.weaponLevel);
-  const a = getArrayName(armorNames, state.armorLevel);
-  const f = getArrayName(fluNames, state.fluLevel);
-  gearInfoEl.textContent = `🪥 ${w}  |  🧴 ${a}  |  🧵 ${f}`;
-}
-
-function updateUI() {
-  hpEl.textContent = `HP: ${Math.round(state.hp)} / ${state.maxHp}`;
-  atkEl.textContent = `ATK: ${state.atk} (무기 Lv.${state.weaponLevel})`;
-  defEl.textContent = `DEF Lv.${state.armorLevel} / 불소 Lv.${state.fluLevel}`;
-  levelEl.textContent = `Lv.${state.level}`;
-  goldEl.textContent = `${formatNumber(state.gold)} Gold`;
-  distEl.textContent = `${Math.round(state.distance)} m`;
-  stageEl.textContent = `스테이지: ${state.stage}`;
-
-  if (state.skillCooldown > 0) {
-    btnSkill.textContent = `💥 불소 폭발 (${state.skillCooldown.toFixed(1)}s)`;
-    btnSkill.classList.add("cooldown");
-  } else {
-    btnSkill.textContent = "💥 불소 폭발 (준비완료)";
-    btnSkill.classList.remove("cooldown");
-  }
-
-  updatePlayerAppearance();
-  updateGearInfo();
-}
-
-// ------------ 적 & 투사체 ------------
-function spawnEnemy(isBoss = false) {
-  const el = document.createElement("div");
-  el.className = "entity enemy" + (isBoss ? " boss" : "");
-  el.textContent = isBoss ? "🦠" : "🦠";
-
-  const width = gameArea.clientWidth || window.innerWidth;
-  const x = width + 40;
-
-  el.style.left = x + "px";
-  gameArea.appendChild(el);
-
-  const hpBase = isBoss ? 200 : 40;
-  const hpScale = isBoss ? state.stage * 40 : state.stage * 10;
-  const hp = hpBase + hpScale;
-
-  const speed = isBoss ? 40 + state.stage * 4 : 60 + state.stage * 3;
-
-  // HP 바
-  const bar = document.createElement("div");
-  bar.className = "hp-bar";
-  const fill = document.createElement("div");
-  fill.className = "hp-fill";
-  bar.appendChild(fill);
-  bar.style.bottom = "30%";
-  gameArea.appendChild(bar);
-
-  enemies.push({
-    el,
-    bar,
-    fill,
-    x,
+  STATE.enemies.push({
+    x: rect.width + 40,
+    y: PLAYER.y,
+    radius: isBoss ? 22 : 18,
     hp,
     maxHp: hp,
-    speed,
+    speed: isBoss ? 40 : 65,
     isBoss
   });
 }
 
-function spawnProjectile() {
-  const el = document.createElement("div");
-  el.className = "entity projectile";
-  const cls = getProjectileClass();
-  if (cls) el.classList.add(cls);
-  el.textContent = getProjectileIcon();
-
-  const bottomPercent = 40;
-  el.style.bottom = bottomPercent + "%";
-
-  const startX = playerEl.offsetLeft + playerEl.offsetWidth + 4;
-  el.style.left = startX + "px";
-  gameArea.appendChild(el);
-
-  projectiles.push({
-    el,
-    x: startX,
-    speed: 230 + state.weaponLevel * 8,
-    damage: state.atk
+function shootProjectile() {
+  // 공격 속도는 고정, 데미지는 무기 기준
+  STATE.projectiles.push({
+    x: PLAYER.x + PLAYER.radius + 6,
+    y: PLAYER.y - 3,
+    speed: 260,
+    power: PLAYER.atk
   });
 }
 
-// ------------ 전투 ------------
-function removeEnemy(e) {
-  if (e.el && e.el.parentNode) e.el.parentNode.removeChild(e.el);
-  if (e.bar && e.bar.parentNode) e.bar.parentNode.removeChild(e.bar);
-  const idx = enemies.indexOf(e);
-  if (idx >= 0) enemies.splice(idx, 1);
+// ─────────────────────────────────────
+// 외형 관련
+// ─────────────────────────────────────
+function drawPlayer() {
+  const rect = canvas.getBoundingClientRect();
+
+  // 그림자
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.15)";
+  ctx.beginPath();
+  ctx.ellipse(
+    PLAYER.x,
+    rect.height * 0.7,
+    PLAYER.radius * 0.8,
+    PLAYER.radius * 0.4,
+    0,
+    0,
+    Math.PI * 2
+  );
+  ctx.fill();
+  ctx.restore();
+
+  // 캐릭터 (치아)
+  ctx.font = `${PLAYER.radius * 1.8}px serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("🦷", PLAYER.x, PLAYER.y);
+
+  // 무기 / 갑옷 / 치실 아이콘 (장비 레벨 따라서 변화)
+  ctx.font = "16px serif";
+  const weaponIcon = WEAPONS[PLAYER.weaponLevel].icon;
+  const armorIcon = ARMORS[PLAYER.armorLevel].icon;
+  const flossIcon = FLOSS[PLAYER.flossLevel].icon;
+
+  ctx.fillText(weaponIcon, PLAYER.x - 28, PLAYER.y - 26);
+  ctx.fillText(armorIcon, PLAYER.x + 28, PLAYER.y - 26);
+  ctx.fillText(flossIcon, PLAYER.x, PLAYER.y + 30);
 }
 
-function damageEnemy(e, dmg) {
-  e.hp -= dmg;
-  const ratio = Math.max(0, e.hp / e.maxHp);
-  e.fill.style.width = ratio * 100 + "%";
-  sfxHit();
+function getProjectileStyle() {
+  const lv = PLAYER.weaponLevel;
+  if (lv <= 1) return { color: "#ffcc00", size: 4, char: "•" };
+  if (lv <= 3) return { color: "#ffa726", size: 5, char: "✦" };
+  if (lv <= 5) return { color: "#ff4081", size: 6, char: "✶" };
+  if (lv <= 7) return { color: "#b388ff", size: 7, char: "✺" };
+  return { color: "#ffffff", size: 8, char: "✵" };
+}
 
-  if (e.hp <= 0) {
-    // 골드, 경험치
-    const g = e.isBoss ? 80 + state.stage * 20 : 15 + state.stage * 4;
-    state.gold += g;
-    const expGain = e.isBoss ? 40 : 10;
-    state.exp += expGain;
+// ─────────────────────────────────────
+// 그리기
+// ─────────────────────────────────────
+function drawBackground() {
+  const rect = canvas.getBoundingClientRect();
 
-    // 보스 처치 플래시
-    if (e.isBoss) {
-      flashEl.classList.add("flash");
-      setTimeout(() => flashEl.classList.remove("flash"), 1000);
-    }
+  // 하늘
+  const skyHeight = rect.height * 0.55;
+  const groundHeight = rect.height - skyHeight;
 
-    // 레벨업 체크
-    while (state.exp >= state.expToNext) {
-      state.exp -= state.expToNext;
-      state.level += 1;
-      state.maxHp += 18;
-      state.atk += 3;
-      state.hp = state.maxHp;
-      state.expToNext = Math.round(state.expToNext * 1.25);
-      sfxLevelUp();
-      msgEl.textContent = `🎉 레벨 ${state.level} 달성! HP+18 ATK+3`;
-    }
+  const grad = ctx.createLinearGradient(0, 0, 0, skyHeight);
+  grad.addColorStop(0, "#c2f1ff");
+  grad.addColorStop(1, "#e3fbff");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, rect.width, skyHeight);
 
-    removeEnemy(e);
+  // 땅 (대각선 스트라이프)
+  const groundTop = skyHeight;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, groundTop, rect.width, groundHeight);
+  ctx.clip();
+
+  const stripeHeight = 60;
+  for (let i = -2; i < 8; i++) {
+    ctx.fillStyle = i % 2 === 0 ? "#1b9c8d" : "#1aa394";
+    ctx.beginPath();
+    ctx.moveTo(-rect.width, groundTop + i * stripeHeight);
+    ctx.lineTo(rect.width * 2, groundTop + (i - 1) * stripeHeight);
+    ctx.lineTo(rect.width * 2, groundTop + i * stripeHeight);
+    ctx.lineTo(-rect.width, groundTop + (i + 1) * stripeHeight);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawEnemies() {
+  const rect = canvas.getBoundingClientRect();
+
+  for (const e of STATE.enemies) {
+    // 적 본체
+    ctx.font = `${e.radius * 1.4}px serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🦠", e.x, e.y);
+
+    // HP바
+    const barWidth = 40;
+    const barHeight = 5;
+    const hpRatio = Math.max(e.hp / e.maxHp, 0);
+    const barX = e.x - barWidth / 2;
+    const barY = rect.height * 0.72;
+
+    ctx.fillStyle = "#ffcccc";
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+
+    ctx.fillStyle = "#4caf50";
+    ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
   }
 }
 
-function takeDamage(dps, dt) {
-  const reduced = dps * dt * (1 - state.armorLevel * 0.02);
-  state.hp -= reduced;
-  if (state.hp <= 0) {
-    state.hp = 0;
-    gameOver();
+function drawProjectiles() {
+  const style = getProjectileStyle();
+  ctx.font = `${style.size * 3}px serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = style.color;
+
+  for (const p of STATE.projectiles) {
+    ctx.fillText(style.char, p.x, p.y);
   }
 }
 
-// ------------ 게임 루프 ------------
-let lastTime = performance.now();
+// ─────────────────────────────────────
+// 업데이트
+// ─────────────────────────────────────
+function update(delta) {
+  if (!STATE.running) return;
 
-function gameLoop(now) {
-  const dt = Math.min((now - lastTime) / 1000, 0.05);
-  lastTime = now;
+  const rect = canvas.getBoundingClientRect();
+  const dt = delta / 1000;
 
-  if (!state.paused && state.alive) {
-    stepGame(dt);
+  // 거리 증가
+  STATE.distance += 60 * dt;
+  distanceText.textContent = `${Math.floor(STATE.distance)} m`;
+
+  // 스테이지 조정 (거리 기준)
+  const newStage = 1 + Math.floor(STATE.distance / 600);
+  if (newStage !== STATE.stage) {
+    STATE.stage = newStage;
+    showBanner(`✨ 스테이지 ${STATE.stage} 시작!`);
   }
 
-  updateUI();
-  requestAnimationFrame(gameLoop);
-}
-requestAnimationFrame(gameLoop);
-
-function stepGame(dt) {
-  const width = gameArea.clientWidth || window.innerWidth;
-
-  // 이동 거리
-  state.distance += RUN_SPEED * dt;
-
-  // 스폰 타이머
-  enemySpawnTimer += dt;
-  if (enemySpawnTimer >= 1.2) {
-    enemySpawnTimer = 0;
-    const isBoss = Math.random() < 0.18;
-    spawnEnemy(isBoss);
+  // 몬스터 스폰
+  STATE.spawnTimer += delta;
+  const interval = Math.max(600, STATE.spawnInterval - STATE.stage * 40);
+  if (STATE.spawnTimer >= interval) {
+    STATE.spawnTimer = 0;
+    spawnEnemy();
   }
 
-  // 자동 공격
-  fireTimer += dt;
-  if (fireTimer >= getFireInterval()) {
-    fireTimer = 0;
-    spawnProjectile();
-  }
-
-  // 스킬 쿨타임
-  if (state.skillCooldown > 0) {
-    state.skillCooldown = Math.max(0, state.skillCooldown - dt);
-  }
-
-  // 적 이동/충돌
-  for (let i = enemies.length - 1; i >= 0; i--) {
-    const e = enemies[i];
-    e.x -= e.speed * dt;
-    e.el.style.left = e.x + "px";
-
-    // HP 바 위치
-    const centerX = e.x + e.el.offsetWidth / 2;
-    e.bar.style.left = centerX - 26 + "px";
-
-    const playerX = playerEl.offsetLeft + playerEl.offsetWidth / 2;
-    if (e.x < playerX + 8) {
-      const dps = e.isBoss ? 35 : 15;
-      takeDamage(dps, dt);
+  // 플레이어 자동 공격 (간단하게 거리 기준으로)
+  if (STATE.enemies.length > 0) {
+    const nearest = STATE.enemies[0];
+    if (nearest.x - PLAYER.x < 260) {
+      // 일정 거리 안에 적이 있으면 발사
+      if (Math.random() < dt * 3) {
+        shootProjectile();
+      }
+    } else {
+      if (Math.random() < dt * 1.5) {
+        shootProjectile();
+      }
     }
-
-    if (e.x < -80) {
-      removeEnemy(e);
-    }
+  } else if (Math.random() < dt) {
+    shootProjectile();
   }
 
-  // 투사체 이동/피격
-  for (let i = projectiles.length - 1; i >= 0; i--) {
-    const p = projectiles[i];
+  // 투사체 이동
+  for (const p of STATE.projectiles) {
     p.x += p.speed * dt;
-    p.el.style.left = p.x + "px";
+  }
 
-    // 적과 충돌 체크
-    for (let j = enemies.length - 1; j >= 0; j--) {
-      const e = enemies[j];
-      if (p.x > e.x - 14 && p.x < e.x + 32) {
-        damageEnemy(e, p.damage);
-        if (p.el.parentNode) p.el.parentNode.removeChild(p.el);
-        projectiles.splice(i, 1);
+  // 적 이동
+  for (const e of STATE.enemies) {
+    e.x -= e.speed * dt;
+  }
+
+  // 충돌 판정 (단순 거리)
+  for (const p of STATE.projectiles) {
+    for (const e of STATE.enemies) {
+      if (Math.abs(p.x - e.x) < 20 && Math.abs(p.y - e.y) < 20) {
+        e.hp -= p.power;
+        p.hit = true;
+        playOnce(sfxHit);
+
+        if (e.hp <= 0 && !e.dead) {
+          e.dead = true;
+          const gain = e.isBoss ? 60 : 20;
+          PLAYER.gold += gain;
+          goldText.textContent = `${PLAYER.gold} Gold`;
+          showMessage(`충치균 처치! +${gain}G`);
+        }
         break;
       }
     }
+  }
 
-    if (p.x > width + 80 && projectiles[i]) {
-      if (p.el.parentNode) p.el.parentNode.removeChild(p.el);
-      projectiles.splice(i, 1);
+  // 죽은 적 제거
+  STATE.enemies = STATE.enemies.filter((e) => e.x + e.radius > 0 && !e.dead);
+  // 화면 밖 투사체 제거
+  STATE.projectiles = STATE.projectiles.filter(
+    (p) => p.x - 10 < rect.width && !p.hit
+  );
+
+  // 적이 플레이어에 닿았는지 체크
+  for (const e of STATE.enemies) {
+    if (e.x - e.radius < PLAYER.x + PLAYER.radius * 0.5) {
+      const damage = Math.max(
+        (e.isBoss ? 18 : 8) - PLAYER.def * 1.5,
+        2
+      );
+      PLAYER.hp -= damage * dt;
+      if (PLAYER.hp <= 0) {
+        PLAYER.hp = 0;
+        gameOver();
+        return;
+      }
     }
   }
 
-  // 스테이지 상승
-  const newStage = 1 + Math.floor(state.distance / 600);
-  if (newStage !== state.stage) {
-    state.stage = newStage;
-    msgEl.textContent = `✨ 스테이지 ${state.stage} 시작!`;
+  // 스킬 쿨타임
+  STATE.skillTimer += dt;
+
+  // 배너 타이머
+  if (STATE.bannerTimer > 0) {
+    STATE.bannerTimer -= dt;
+    if (STATE.bannerTimer <= 0) {
+      showMessage("");
+    }
   }
 
-  // 자동 저장 (3초마다)
-  state.saveTimer += dt;
-  if (state.saveTimer >= 3) {
-    state.saveTimer = 0;
-    saveGame();
-  }
+  updateUI();
 }
 
-// ------------ 스킬 사용 ------------
+// ─────────────────────────────────────
+// 스킬 (불소 폭발)
+// ─────────────────────────────────────
 function useSkill() {
-  if (!state.alive || state.paused) return;
-  if (state.skillCooldown > 0) return;
+  const floss = FLOSS[PLAYER.flossLevel];
+  if (STATE.skillTimer < floss.cooldown) return;
+  STATE.skillTimer = 0;
 
-  const base = state.atk * (1.4 + state.fluLevel * 0.5);
-  enemies.slice().forEach(e => {
-    damageEnemy(e, base);
-  });
-
-  state.skillCooldown = getSkillCooldown();
-  msgEl.textContent = `💥 불소 폭발! (쿨타임 ${state.skillCooldown.toFixed(
-    1
-  )}초)`;
-  sfxSkill();
-}
-
-// ------------ 일시정지 ------------
-function togglePause() {
-  state.paused = !state.paused;
-  btnPause.textContent = state.paused ? "▶ 재시작" : "⏸ 일시정지";
-  msgEl.textContent = state.paused ? "⏸ 일시정지 중" : "자동 사냥 재개!";
-}
-
-// ------------ 상점 ------------
-function buyWeapon() {
-  if (!state.alive) return;
-  const cost = state.weaponLevel * 80;
-  if (state.gold < cost) {
-    msgEl.textContent = `골드가 부족합니다 (필요: ${cost}G)`;
+  if (STATE.enemies.length === 0) {
+    showMessage("공격할 몬스터가 없습니다.");
     return;
   }
-  state.gold -= cost;
-  state.weaponLevel += 1;
-  state.atk += 5;
-  msgEl.textContent = `🪥 무기 강화! ATK +5 (Lv.${state.weaponLevel})`;
+
+  playOnce(sfxSkill);
+
+  const dmg = floss.skillPower;
+  for (const e of STATE.enemies) {
+    e.hp -= dmg;
+    if (e.hp <= 0 && !e.dead) {
+      e.dead = true;
+      const gain = e.isBoss ? 60 : 20;
+      PLAYER.gold += gain;
+    }
+  }
+  showBanner(`💥 불소 폭발! 모든 충치균에게 ${dmg} 대미지!`);
+  STATE.enemies = STATE.enemies.filter((e) => e.x + e.radius > 0 && !e.dead);
+  updateUI();
 }
 
-function buyArmor() {
-  if (!state.alive) return;
-  const cost = state.armorLevel * 80;
-  if (state.gold < cost) {
-    msgEl.textContent = `골드가 부족합니다 (필요: ${cost}G)`;
+// ─────────────────────────────────────
+// UI / 상점
+// ─────────────────────────────────────
+function updateGearTexts() {
+  const w = WEAPONS[PLAYER.weaponLevel];
+  const a = ARMORS[PLAYER.armorLevel];
+  const f = FLOSS[PLAYER.flossLevel];
+
+  weaponNameText.textContent = `${w.name} (Lv.${PLAYER.weaponLevel + 1})`;
+  armorNameText.textContent = `${a.name} (Lv.${
+    PLAYER.armorLevel + 1
+  })`;
+  flossNameText.textContent = `${f.name} (Lv.${PLAYER.flossLevel + 1})`;
+}
+
+function updateShopTexts() {
+  // 무기
+  if (PLAYER.weaponLevel + 1 < WEAPONS.length) {
+    const next = WEAPONS[PLAYER.weaponLevel + 1];
+    const cost = 80 + PLAYER.weaponLevel * 80;
+    shopWeaponNext.textContent = `다음: ${next.name}`;
+    shopWeaponCost.textContent = `필요 골드: ${cost}G`;
+  } else {
+    shopWeaponNext.textContent = "최고 무기입니다.";
+    shopWeaponCost.textContent = "-";
+  }
+
+  // 갑옷
+  if (PLAYER.armorLevel + 1 < ARMORS.length) {
+    const next = ARMORS[PLAYER.armorLevel + 1];
+    const cost = 80 + PLAYER.armorLevel * 80;
+    shopArmorNext.textContent = `다음: ${next.name}`;
+    shopArmorCost.textContent = `필요 골드: ${cost}G`;
+  } else {
+    shopArmorNext.textContent = "최고 갑옷입니다.";
+    shopArmorCost.textContent = "-";
+  }
+
+  // 치실
+  if (PLAYER.flossLevel + 1 < FLOSS.length) {
+    const next = FLOSS[PLAYER.flossLevel + 1];
+    const cost = 120 + PLAYER.flossLevel * 120;
+    shopFlossNext.textContent = `다음: ${next.name}`;
+    shopFlossCost.textContent = `필요 골드: ${cost}G`;
+  } else {
+    shopFlossNext.textContent = "최고 치실입니다.";
+    shopFlossCost.textContent = "-";
+  }
+}
+
+function upgradeWeapon() {
+  if (PLAYER.weaponLevel + 1 >= WEAPONS.length) {
+    showMessage("이미 최고 무기입니다.");
     return;
   }
-  state.gold -= cost;
-  state.armorLevel += 1;
-  state.maxHp += 25;
-  state.hp = state.maxHp;
-  msgEl.textContent = `🧴 갑옷 강화! HP +25 (Lv.${state.armorLevel})`;
-}
-
-function buyFluoride() {
-  if (!state.alive) return;
-  const cost = state.fluLevel * 120;
-  if (state.gold < cost) {
-    msgEl.textContent = `골드가 부족합니다 (필요: ${cost}G)`;
+  const cost = 80 + PLAYER.weaponLevel * 80;
+  if (PLAYER.gold < cost) {
+    showMessage(`골드가 부족합니다. (필요: ${cost}G)`);
     return;
   }
-  state.gold -= cost;
-  state.fluLevel += 1;
-  msgEl.textContent = `🧵 불소 레벨 업! (Lv.${state.fluLevel})`;
+  PLAYER.gold -= cost;
+  PLAYER.weaponLevel++;
+  showBanner(`🪥 ${WEAPONS[PLAYER.weaponLevel].name} 장착!`);
+  updateUI();
 }
 
-// ------------ 게임 오버 ------------
-function gameOver() {
-  if (!state.alive) return;
-  state.alive = false;
-  overlay.classList.remove("hidden");
-  const dist = Math.round(state.distance);
-  gameoverSummary.textContent = `최종 거리 ${dist} m, 골드 ${formatNumber(
-    state.gold
-  )}G, 레벨 ${state.level}`;
+function upgradeArmor() {
+  if (PLAYER.armorLevel + 1 >= ARMORS.length) {
+    showMessage("이미 최고 갑옷입니다.");
+    return;
+  }
+  const cost = 80 + PLAYER.armorLevel * 80;
+  if (PLAYER.gold < cost) {
+    showMessage(`골드가 부족합니다. (필요: ${cost}G)`);
+    return;
+  }
+  PLAYER.gold -= cost;
+  PLAYER.armorLevel++;
+  showBanner(`🧴 ${ARMORS[PLAYER.armorLevel].name} 장착!`);
+  updateUI();
+}
+
+function upgradeFluor() {
+  if (PLAYER.flossLevel + 1 >= FLOSS.length) {
+    showMessage("이미 최고 치실입니다.");
+    return;
+  }
+  const cost = 120 + PLAYER.flossLevel * 120;
+  if (PLAYER.gold < cost) {
+    showMessage(`골드가 부족합니다. (필요: ${cost}G)`);
+    return;
+  }
+  PLAYER.gold -= cost;
+  PLAYER.flossLevel++;
+  showBanner(`🧵 ${FLOSS[PLAYER.flossLevel].name} 장착!`);
+  updateUI();
+}
+
+function updateUI() {
+  hpText.textContent = `${Math.round(PLAYER.hp)} / ${PLAYER.maxHp}`;
+  levelText.textContent = `Lv.${PLAYER.level}`;
+  atkText.textContent = `${PLAYER.atk} (무기 Lv.${PLAYER.weaponLevel + 1})`;
+  goldText.textContent = `${PLAYER.gold} Gold`;
+  defText.textContent = `Lv.${PLAYER.armorLevel + 1} / 불소 Lv.${
+    PLAYER.flossLevel + 1
+  }`;
+
+  // 스킬 버튼 문구
+  const floss = FLOSS[PLAYER.flossLevel];
+  const remain = Math.max(0, floss.cooldown - STATE.skillTimer);
+  if (remain <= 0) {
+    btnSkill.textContent = "💥 불소 폭발 (준비완료)";
+    btnSkill.classList.remove("disabled");
+  } else {
+    btnSkill.textContent = `💥 불소 폭발 (${remain.toFixed(1)}s)`;
+    btnSkill.classList.add("disabled");
+  }
+
+  updateGearTexts();
+  updateShopTexts();
   saveGame();
 }
 
-// ------------ 재시작 ------------
-function restartGame() {
-  overlay.classList.add("hidden");
-  state.hp = state.maxHp;
-  state.distance = 0;
-  state.stage = 1;
-  state.exp = 0;
-  state.alive = true;
-  state.paused = false;
-  btnPause.textContent = "⏸ 일시정지";
-  msgEl.textContent = "새로운 자동 사냥 시작!";
-
-  enemies.forEach(removeEnemy);
-  enemies = [];
-  projectiles.forEach(p => {
-    if (p.el.parentNode) p.el.parentNode.removeChild(p.el);
-  });
-  projectiles = [];
+// ─────────────────────────────────────
+// 세이브 / 로드
+// ─────────────────────────────────────
+function saveGame() {
+  const data = {
+    hp: PLAYER.hp,
+    maxHp: PLAYER.maxHp,
+    level: PLAYER.level,
+    gold: PLAYER.gold,
+    weaponLevel: PLAYER.weaponLevel,
+    armorLevel: PLAYER.armorLevel,
+    flossLevel: PLAYER.flossLevel,
+    distance: STATE.distance,
+    stage: STATE.stage
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) {}
 }
 
-// ------------ 이벤트 바인딩 ------------
-btnShopWeapon.addEventListener("click", buyWeapon);
-btnShopArmor.addEventListener("click", buyArmor);
-btnShopFluoride.addEventListener("click", buyFluoride);
-btnSkill.addEventListener("click", useSkill);
-btnPause.addEventListener("click", togglePause);
-btnRestart.addEventListener("click", restartGame);
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
 
-// 첫 UI 갱신
-updateUI();
-msgEl.textContent =
-  "자동 사냥 시작! 상점에서 칫솔·치약·치실(불소)을 강화해보세요 🪥";
+    const data = JSON.parse(raw);
+    PLAYER.hp = data.hp ?? PLAYER.hp;
+    PLAYER.maxHp = data.maxHp ?? PLAYER.maxHp;
+    PLAYER.level = data.level ?? PLAYER.level;
+    PLAYER.gold = data.gold ?? PLAYER.gold;
+    PLAYER.weaponLevel = data.weaponLevel ?? PLAYER.weaponLevel;
+    PLAYER.armorLevel = data.armorLevel ?? PLAYER.armorLevel;
+    PLAYER.flossLevel = data.flossLevel ?? PLAYER.flossLevel;
+    STATE.distance = data.distance ?? STATE.distance;
+    STATE.stage = data.stage ?? STATE.stage;
+  } catch (e) {}
+}
+
+// ─────────────────────────────────────
+// 게임 흐름 (초기화 / 재시작 / 게임오버)
+// ─────────────────────────────────────
+function clearAllEntities() {
+  STATE.enemies.length = 0;
+  STATE.projectiles.length = 0;
+  // 잔상 제거용 캔버스 전체 클리어
+  const rect = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, rect.height);
+}
+
+function resetGame(fullReset = false) {
+  STATE.running = true;
+  STATE.lastTime = 0;
+  STATE.spawnTimer = 0;
+  STATE.skillTimer = 999;
+  STATE.bannerTimer = 0;
+
+  if (fullReset) {
+    PLAYER.maxHp = 100;
+    PLAYER.hp = 100;
+    PLAYER.level = 1;
+    PLAYER.gold = 0;
+    PLAYER.weaponLevel = 0;
+    PLAYER.armorLevel = 0;
+    PLAYER.flossLevel = 0;
+    STATE.distance = 0;
+    STATE.stage = 1;
+  }
+
+  clearAllEntities();
+  spawnEnemy();
+  updateUI();
+  showMessage("새로운 자동 사냥 시작!");
+}
+
+function gameOver() {
+  STATE.running = false;
+  showBanner("☠️ 게임 오버! '새로 시작'을 눌러 다시 도전하세요.");
+}
+
+// ─────────────────────────────────────
+// 메인 루프
+// ─────────────────────────────────────
+function loop(timestamp) {
+  if (!STATE.lastTime) STATE.lastTime = timestamp;
+  const delta = timestamp - STATE.lastTime;
+  STATE.lastTime = timestamp;
+
+  // 매 프레임 캔버스 전체 지우기 → 잔상 방지
+  const rect = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, rect.height);
+
+  drawBackground();
+  drawPlayer();
+  drawEnemies();
+  drawProjectiles();
+  update(delta);
+
+  requestAnimationFrame(loop);
+}
+
+// ─────────────────────────────────────
+// 이벤트 연결
+// ─────────────────────────────────────
+btnWeaponUpgrade.addEventListener("click", upgradeWeapon);
+btnArmorUpgrade.addEventListener("click", upgradeArmor);
+btnFluorUpgrade.addEventListener("click", upgradeFluor);
+btnSkill.addEventListener("click", () => useSkill());
+
+btnPause.addEventListener("click", () => {
+  STATE.running = !STATE.running;
+  btnPause.textContent = STATE.running ? "⏸ 일시정지" : "▶ 다시 시작";
+  if (STATE.running) showMessage("자동 사냥 재개!");
+  else showMessage("일시정지 중…");
+});
+
+btnRestart.addEventListener("click", () => {
+  resetGame(true);
+});
+
+// 화면 아무 곳이나 첫 탭 → BGM 시작
+document.body.addEventListener(
+  "touchstart",
+  () => {
+    if (!audioActivated) {
+      audioActivated = true;
+      try {
+        bgm.volume = 0.5;
+        bgm.play();
+        showMessage("배경음악 ON 🎵");
+      } catch (e) {}
+    }
+  },
+  { once: true }
+);
+document.body.addEventListener(
+  "mousedown",
+  () => {
+    if (!audioActivated) {
+      audioActivated = true;
+      try {
+        bgm.volume = 0.5;
+        bgm.play();
+        showMessage("배경음악 ON 🎵");
+      } catch (e) {}
+    }
+  },
+  { once: true }
+);
+
+// ─────────────────────────────────────
+// 시작
+// ─────────────────────────────────────
+function init() {
+  resizeCanvas();
+  loadGame();
+  resetGame(false);
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener("load", init);
