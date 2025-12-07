@@ -2,7 +2,7 @@
 // 치아 용사 RPG - 게임 로직
 // ===============================
 
-const SAVE_KEY = "toothWarriorSaveV1";
+const SAVE_KEY = "toothWarriorSaveV2";
 
 // DOM 참조
 const gameArea = document.getElementById("game-area");
