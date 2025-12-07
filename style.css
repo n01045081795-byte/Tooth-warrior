@@ -1,366 +1,212 @@
-/* ============================
-   치아 용사 RPG - 스타일
-============================ */
-
-/* 공통 */
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
+html,
 body {
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Noto Sans KR", system-ui, sans-serif;
   background: #e0f7ff;
-  color: #0f172a;
 }
 
-/* 상단 패널 */
-#top-panel {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 6px 10px 6px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.12);
-  z-index: 20;
+body {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
 }
 
-#logo-row {
+.app {
+  width: 100%;
+  max-width: 480px;
+  background: #e0f7ff;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 상단 정보 / 로고 */
+.top-bar {
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 6px 10px 4px;
+  border-radius: 0 0 16px 16px;
+}
+
+.logo-block {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2px;
+  gap: 8px;
 }
 
-#logo-mark {
-  font-size: 26px;
-  margin-right: 6px;
+.logo-icon {
+  font-size: 30px;
 }
 
-#logo-text .logo-main {
+.logo-text {
+  text-align: left;
+}
+
+.logo-main {
   font-weight: 800;
-  font-size: 15px;
+  color: #00a0d6;
+  font-size: 18px;
   letter-spacing: 0.03em;
-  color: #0284c7;
 }
 
-#logo-text .logo-sub {
-  font-size: 10px;
-  color: #64748b;
+.logo-sub {
+  font-size: 11px;
+  color: #666;
 }
 
 .stat-row {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
-  font-weight: 600;
-  margin-top: 1px;
+  margin-top: 4px;
+  gap: 4px;
 }
 
-.stat-row span {
+.stat {
   flex: 1;
   text-align: center;
+  font-size: 11px;
 }
 
-#stat-message {
-  font-size: 10px;
-  text-align: center;
+.stat-label {
+  color: #777;
+}
+
+.stat-value {
+  font-weight: 700;
   margin-top: 2px;
-  color: #6b7280;
 }
 
-/* 게임 영역 : 화면 위쪽 일부만 사용 */
-#game-area {
-  position: fixed;
-  top: 98px;      /* 상단 패널 아래 */
-  bottom: 230px;  /* 아래 상점 공간을 넓게 */
-  left: 0;
-  right: 0;
-  overflow: hidden;
+.stat-small {
+  color: #777;
 }
 
-/* 하늘 */
-#sky {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, #e0f7ff 0%, #b3ecff 60%, #a5f3fc 100%);
-}
-
-/* 땅 */
-#ground {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 200%;
-  height: 40%;
-  background: repeating-linear-gradient(
-    -12deg,
-    #4db6ac 0px,
-    #4db6ac 60px,
-    #26a69a 60px,
-    #26a69a 120px
-  );
-  animation: groundScroll 7s linear infinite;
-}
-
-@keyframes groundScroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-/* 엔티티 공통 */
-.entity {
-  position: absolute;
-  bottom: 40%;
-  font-size: 48px;
-  user-select: none;
-  pointer-events: none;
-}
-
-/* 플레이어 */
-.player {
-  left: 16%;
-  filter: drop-shadow(0 0 6px rgba(15, 23, 42, 0.6));
-}
-
-/* 적 */
-.enemy {
-  font-size: 44px;
-}
-
-.enemy.boss {
-  font-size: 56px;
-}
-
-/* 투사체 */
-.projectile {
-  font-size: 22px;
-  text-shadow: 0 0 4px rgba(234, 179, 8, 0.7);
-}
-
-.projectile.p1 {
-  font-size: 24px;
-  text-shadow: 0 0 4px rgba(234, 179, 8, 0.9);
-}
-
-.projectile.p2 {
-  font-size: 26px;
-  text-shadow: 0 0 4px rgba(56, 189, 248, 0.9);
-}
-
-.projectile.p3 {
-  font-size: 28px;
-  text-shadow: 0 0 4px rgba(244, 114, 182, 0.9);
-}
-
-.projectile.p4 {
-  font-size: 30px;
-  text-shadow: 0 0 4px rgba(251, 113, 133, 0.9);
-}
-
-/* HP 바 */
-.hp-bar {
-  position: absolute;
-  width: 52px;
-  height: 6px;
-  border-radius: 4px;
-  background: #fecaca;
-  overflow: hidden;
-}
-
-.hp-fill {
-  height: 100%;
-  width: 100%;
-  background: #22c55e;
-  transition: width 0.1s linear;
-}
-
-/* 하단 패널 : 넓게 */
-#bottom-panel {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 10px 10px 14px;
-  background: rgba(248, 250, 252, 0.98);
-  box-shadow: 0 -2px 4px rgba(15, 23, 42, 0.1);
-  z-index: 20;
-}
-
-/* 장비 정보 텍스트 */
-#gear-info {
+.message {
+  margin-top: 4px;
+  text-align: center;
   font-size: 11px;
-  font-weight: 600;
+  color: #555;
+}
+
+.gear-bar {
+  margin-top: 3px;
   text-align: center;
-  margin-bottom: 6px;
-  color: #0f172a;
+  font-size: 11px;
+  color: #444;
 }
 
-#shop-row {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 6px;
+/* 게임 영역 : 상단 1/3 */
+.game-wrapper {
+  flex: 0 0 32vh; /* 화면 높이의 약 1/3 */
+  padding: 4px 10px 0;
 }
 
-#control-row {
-  display: flex;
-  gap: 6px;
-}
-
-button {
-  font-family: inherit;
-}
-
-/* 상점 버튼 */
-.shop-btn {
-  flex: 1;
-  border-radius: 999px;
-  border: none;
-  padding: 8px 4px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #ffffff;
-  background: #0284c7;
-}
-
-.shop-btn:nth-child(2) {
-  background: #10b981;
-}
-
-.shop-btn:nth-child(3) {
-  background: #8b5cf6;
-}
-
-.shop-btn:active {
-  transform: scale(0.96);
-}
-
-/* 스킬 & 일시정지 */
-.skill-btn {
-  flex: 2;
-  border-radius: 999px;
-  border: none;
-  padding: 8px 4px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #f9fafb;
-  background: #f97316;
-}
-
-.pause-btn {
-  flex: 1;
-  border-radius: 999px;
-  border: none;
-  padding: 8px 4px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #0f172a;
-  background: #e5e7eb;
-}
-
-.skill-btn.cooldown {
-  opacity: 0.4;
-}
-
-/* 오버레이 (게임 오버) */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 40;
-}
-
-.overlay.hidden {
-  display: none;
-}
-
-.overlay-box {
-  width: 260px;
-  padding: 16px 14px 14px;
-  background: #f9fafb;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
-  font-size: 13px;
-}
-
-.overlay-box h2 {
-  margin: 0 0 6px;
-}
-
-.overlay-box p {
-  margin: 4px 0 10px;
-  color: #4b5563;
-}
-
-/* 버튼 스타일 */
-.primary {
+#gameCanvas {
   width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  background: linear-gradient(#c2f1ff 45%, #1d9f93 45%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* 하단 UI : 나머지 2/3 */
+.ui-wrapper {
+  flex: 1;
+  padding: 6px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.button-row {
+  display: flex;
+  gap: 6px;
+}
+
+.btn {
+  flex: 1;
   border-radius: 999px;
   border: none;
-  padding: 8px 4px;
-  font-size: 13px;
-  font-weight: 800;
-  color: #f9fafb;
-  background: #ef4444;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 8px;
+  cursor: pointer;
 }
 
-/* 보스 처치 플래시 */
-#screen-flash {
-  position: fixed;
-  inset: 0;
-  background: white;
-  opacity: 0;
+.btn.primary {
+  background: #0597ff;
+  color: #fff;
+  box-shadow: 0 3px 6px rgba(0, 122, 255, 0.4);
+}
+
+.btn.primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 3px rgba(0, 122, 255, 0.5);
+}
+
+.btn.skill {
+  background: #ff8800;
+  color: #fff;
+  box-shadow: 0 3px 6px rgba(255, 136, 0, 0.5);
+}
+
+.btn.secondary {
+  background: #f2f2f2;
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btn.disabled {
+  opacity: 0.5;
   pointer-events: none;
-  z-index: 30;
 }
 
-#screen-flash.flash {
-  animation: flash3 0.3s ease-in-out 3;
+.shop-title {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
 }
 
-@keyframes flash3 {
-  0% {
-    opacity: 0;
-  }
-  50% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 0;
-  }
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
 
-/* 큰 화면일 때 가운데 정렬 */
-@media (min-width: 768px) {
-  #top-panel {
-    left: 50%;
-    transform: translateX(-50%);
-    width: 480px;
-    border-radius: 0 0 14px 14px;
-  }
+.shop-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 6px 6px 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+}
 
-  #bottom-panel {
-    left: 50%;
-    transform: translateX(-50%);
-    width: 480px;
-    border-radius: 14px 14px 0 0;
-  }
+.shop-name {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
 
-  #game-area {
-    left: 50%;
-    transform: translateX(-50%);
-    width: 480px;
-  }
+.shop-desc {
+  color: #444;
+}
+
+.shop-cost {
+  margin-top: 3px;
+  color: #0a8f3f;
+  font-weight: 600;
+}
+
+/* 작은 화면에서 버튼 글자 줄바꿈 방지 */
+button {
+  white-space: nowrap;
 }
