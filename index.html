@@ -2,14 +2,13 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
+  <title>치아 용사 자동 사냥 RPG</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🦷 치아 용사 자동 사냥 RPG</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <!-- 상단 로고 + 스탯 패널 -->
-  <header id="top-panel">
+  <!-- 상단 정보 패널 -->
+  <div id="top-panel">
     <div id="logo-row">
       <div id="logo-mark">🦷</div>
       <div id="logo-text">
@@ -18,53 +17,60 @@
       </div>
     </div>
 
-    <div class="stat-row" id="stat-row-1">
-      <span id="stat-hp"></span>
-      <span id="stat-atk"></span>
-      <span id="stat-def"></span>
+    <div class="stat-row">
+      <span id="stat-hp">HP: 100 / 100</span>
+      <span id="stat-atk">ATK: 10 (무기 Lv.1)</span>
+      <span id="stat-def">DEF Lv.1 / 불소 Lv.1</span>
     </div>
-    <div class="stat-row" id="stat-row-2">
-      <span id="stat-level"></span>
-      <span id="stat-gold"></span>
-      <span id="stat-distance"></span>
-      <span id="stat-stage"></span>
+    <div class="stat-row">
+      <span id="stat-level">Lv.1</span>
+      <span id="stat-gold">0 Gold</span>
+      <span id="stat-distance">0 m</span>
+    </div>
+    <div class="stat-row">
+      <span></span>
+      <span id="stat-stage">스테이지: 1</span>
+      <span></span>
     </div>
     <div id="stat-message">화면을 한 번 탭하면 사운드가 켜집니다 🎵</div>
-  </header>
+  </div>
 
-  <!-- 게임 영역 -->
-  <main id="game-area">
+  <!-- 게임 영역 (위쪽만 사용) -->
+  <div id="game-area">
     <div id="sky"></div>
     <div id="ground"></div>
-
-    <!-- 플레이어 -->
     <div id="player" class="entity player">🦷</div>
-  </main>
+  </div>
 
-  <!-- 하단 상점 + 컨트롤 -->
-  <section id="bottom-panel">
+  <!-- 하단 상점 / 버튼 영역 -->
+  <div id="bottom-panel">
+    <div id="gear-info">
+      🪥 나무 칫솔 (Lv.1) | 🧴 일반 치약 (Lv.1) | 🧵 일반 치실 (Lv.1)
+    </div>
+
     <div id="shop-row">
       <button id="btn-shop-weapon" class="shop-btn">🪥 무기 강화</button>
       <button id="btn-shop-armor" class="shop-btn">🧴 갑옷 강화</button>
       <button id="btn-shop-fluoride" class="shop-btn">🧵 불소 레벨</button>
     </div>
+
     <div id="control-row">
-      <button id="btn-skill" class="skill-btn">💥 불소 폭발</button>
+      <button id="btn-skill" class="skill-btn">💥 불소 폭발 (준비완료)</button>
       <button id="btn-pause" class="pause-btn">⏸ 일시정지</button>
     </div>
-  </section>
+  </div>
+
+  <!-- 보스 처치 플래시 -->
+  <div id="screen-flash"></div>
 
   <!-- 게임 오버 오버레이 -->
   <div id="overlay-gameover" class="overlay hidden">
     <div class="overlay-box">
       <h2>☠ 게임 오버</h2>
       <p id="gameover-summary"></p>
-      <button id="btn-restart" class="primary">🔁 다시하기</button>
+      <button id="btn-restart" class="primary">다시 시작</button>
     </div>
   </div>
-
-  <!-- 보스 처치 플래시 -->
-  <div id="screen-flash"></div>
 
   <script src="game.js"></script>
 </body>
