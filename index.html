@@ -7,70 +7,87 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- 상단 정보 패널 -->
-  <div id="top-panel">
-    <div id="logo-row">
-      <div id="logo-mark">🦷</div>
-      <div id="logo-text">
-        <div class="logo-main">다봄치과의원</div>
-        <div class="logo-sub">DABOM Dental Clinic</div>
+  <div class="app">
+    <!-- 상단 정보 / 로고 영역 -->
+    <header class="top-bar">
+      <div class="logo-block">
+        <div class="logo-icon">🦷</div>
+        <div class="logo-text">
+          <div class="logo-main">다봄치과의원</div>
+          <div class="logo-sub">DABOM Dental Clinic</div>
+        </div>
       </div>
-    </div>
 
-    <div class="stat-row">
-      <span id="stat-hp">HP: 100 / 100</span>
-      <span id="stat-atk">ATK: 10 (무기 Lv.1)</span>
-      <span id="stat-def">DEF Lv.1 / 불소 Lv.1</span>
-    </div>
-    <div class="stat-row">
-      <span id="stat-level">Lv.1</span>
-      <span id="stat-gold">0 Gold</span>
-      <span id="stat-distance">0 m</span>
-    </div>
-    <div class="stat-row">
-      <span></span>
-      <span id="stat-stage">스테이지: 1</span>
-      <span></span>
-    </div>
-    <div id="stat-message">화면을 한 번 탭하면 사운드가 켜집니다 🎵</div>
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-label">HP</div>
+          <div class="stat-value" id="hpText">100 / 100</div>
+          <div class="stat-small" id="levelText">Lv.1</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">ATK</div>
+          <div class="stat-value" id="atkText">10 (무기 Lv.1)</div>
+          <div class="stat-small" id="goldText">0 Gold</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">DEF / 불소</div>
+          <div class="stat-value" id="defText">Lv.1 / Lv.1</div>
+          <div class="stat-small" id="distanceText">0 m</div>
+        </div>
+      </div>
+
+      <div class="message" id="messageText">화면을 한 번 탭하면 사운드가 켜집니다 🎵</div>
+      <div class="gear-bar" id="gearBar">
+        🪥 <span id="weaponName">나무 칫솔 (Lv.1)</span> |
+        🧴 <span id="armorName">일반 치약 (Lv.1)</span> |
+        🧵 <span id="flossName">일반 치실 (Lv.1)</span>
+      </div>
+    </header>
+
+    <!-- 게임 영역 : 화면 상단 1/3만 사용 -->
+    <main class="game-wrapper">
+      <canvas id="gameCanvas"></canvas>
+    </main>
+
+    <!-- 하단 2/3 : 버튼 + 상점 UI -->
+    <section class="ui-wrapper">
+      <div class="button-row">
+        <button id="btnWeaponUpgrade" class="btn primary">🪥 무기 강화</button>
+        <button id="btnArmorUpgrade" class="btn primary">🧴 갑옷 강화</button>
+        <button id="btnFluorUpgrade" class="btn primary">🧵 불소 레벨</button>
+      </div>
+
+      <div class="button-row">
+        <button id="btnSkill" class="btn skill">💥 불소 폭발 (준비완료)</button>
+        <button id="btnPause" class="btn secondary">⏸ 일시정지</button>
+        <button id="btnRestart" class="btn secondary">🔁 새로 시작</button>
+      </div>
+
+      <div class="shop-title">🛒 장비 상점</div>
+      <div class="shop-grid">
+        <div class="shop-card">
+          <div class="shop-name">무기</div>
+          <div class="shop-desc" id="shopWeaponNext">다음: -</div>
+          <div class="shop-cost" id="shopWeaponCost">필요 골드: -</div>
+        </div>
+        <div class="shop-card">
+          <div class="shop-name">갑옷(치약)</div>
+          <div class="shop-desc" id="shopArmorNext">다음: -</div>
+          <div class="shop-cost" id="shopArmorCost">필요 골드: -</div>
+        </div>
+        <div class="shop-card">
+          <div class="shop-name">방패(치실)</div>
+          <div class="shop-desc" id="shopFlossNext">다음: -</div>
+          <div class="shop-cost" id="shopFlossCost">필요 골드: -</div>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <!-- 게임 영역 (위쪽만 사용) -->
-  <div id="game-area">
-    <div id="sky"></div>
-    <div id="ground"></div>
-    <div id="player" class="entity player">🦷</div>
-  </div>
-
-  <!-- 하단 상점 / 버튼 영역 -->
-  <div id="bottom-panel">
-    <div id="gear-info">
-      🪥 나무 칫솔 (Lv.1) | 🧴 일반 치약 (Lv.1) | 🧵 일반 치실 (Lv.1)
-    </div>
-
-    <div id="shop-row">
-      <button id="btn-shop-weapon" class="shop-btn">🪥 무기 강화</button>
-      <button id="btn-shop-armor" class="shop-btn">🧴 갑옷 강화</button>
-      <button id="btn-shop-fluoride" class="shop-btn">🧵 불소 레벨</button>
-    </div>
-
-    <div id="control-row">
-      <button id="btn-skill" class="skill-btn">💥 불소 폭발 (준비완료)</button>
-      <button id="btn-pause" class="pause-btn">⏸ 일시정지</button>
-    </div>
-  </div>
-
-  <!-- 보스 처치 플래시 -->
-  <div id="screen-flash"></div>
-
-  <!-- 게임 오버 오버레이 -->
-  <div id="overlay-gameover" class="overlay hidden">
-    <div class="overlay-box">
-      <h2>☠ 게임 오버</h2>
-      <p id="gameover-summary"></p>
-      <button id="btn-restart" class="primary">다시 시작</button>
-    </div>
-  </div>
+  <!-- 사운드 -->
+  <audio id="bgm" loop src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_9b3bbf85b0.mp3?filename=8-bit-gaming-112216.mp3"></audio>
+  <audio id="sfxHit" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_286ff7103a.mp3?filename=retro-game-notification-212-112173.mp3"></audio>
+  <audio id="sfxSkill" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_4fd39c31d8.mp3?filename=power-up-7103.mp3"></audio>
 
   <script src="game.js"></script>
 </body>
