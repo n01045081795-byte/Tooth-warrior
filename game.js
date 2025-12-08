@@ -16,10 +16,13 @@ const weaponNameText = document.getElementById("weaponName");
 const armorNameText = document.getElementById("armorName");
 const flossNameText = document.getElementById("flossName");
 
-// 버튼 DOM (이름 변경, 체력 강화 버튼 추가)
+// 강화 버튼 DOM
 const btnWeaponUpgrade = document.getElementById("btnWeaponUpgrade"); // 무기 강화 (ATK)
 const btnArmorUpgrade = document.getElementById("btnArmorUpgrade"); // 갑옷 강화 (DEF)
 const btnFluorUpgrade = document.getElementById("btnFluorUpgrade"); // 치실 강화 (스킬)
+const btnHpUpgrade = document.getElementById("btnHpUpgrade"); // NEW! HP 강화
+
+// 유틸리티 버튼
 const btnSkill = document.getElementById("btnSkill");
 const btnPause = document.getElementById("btnPause");
 const btnRestart = document.getElementById("btnRestart");
@@ -41,7 +44,7 @@ const sfxHit = document.getElementById("sfxHit");
 const sfxSkill = document.getElementById("sfxSkill");
 
 let audioActivated = false;
-const SAVE_KEY = "toothWarriorSaveV4"; // 버전 변경
+const SAVE_KEY = "toothWarriorSaveV4"; 
 
 // ─────────────────────────────────────
 // 장비 데이터 (구매 가능 아이템)
@@ -93,51 +96,45 @@ const STATE = {
     stage: 1,
     skillTimer: 0,
     bannerTimer: 0,
-    attackDelay: 0, // 공격 속도 관리를 위한 변수 추가
+    attackDelay: 0, 
 };
 
 const PLAYER = {
     x: 0,
     y: 0,
     radius: 20,
-    baseMaxHp: 100, // 기본 HP
-    hpBoostLevel: 0, // HP 강화 레벨 (MaxHP 증가)
+    baseMaxHp: 100, 
+    hpBoostLevel: 0, 
     hp: 100,
     level: 1,
     exp: 0,
     gold: 0,
 
-    weaponTier: 0, // 장비 티어 (Index of WEAPON_TIERS)
-    armorTier: 0, // 장비 티어 (Index of ARMOR_TIERS)
-    flossTier: 0, // 장비 티어 (Index of FLOSS_TIERS)
+    weaponTier: 0, 
+    armorTier: 0, 
+    flossTier: 0, 
     
-    weaponLevel: 1, // 현재 장비 강화 레벨
+    weaponLevel: 1, 
     armorLevel: 1,
     flossLevel: 1,
 
-    // 무기 기본 공격력 + 레벨 보너스
     get atk() {
         const tier = WEAPON_TIERS[this.weaponTier];
         return Math.floor(tier.baseAtk + (this.weaponLevel - 1) * (tier.baseAtk * 0.15));
     },
-    // 갑옷 기본 방어력 + 레벨 보너스
     get def() {
         const tier = ARMOR_TIERS[this.armorTier];
         return Math.floor(tier.baseDef + (this.armorLevel - 1) * (tier.baseDef * 0.2));
     },
-    // 최대 체력 (기본 + HP 강화 보너스)
     get maxHp() {
         return this.baseMaxHp + this.hpBoostLevel * 50;
     },
-    // 공격 속도 (무기 티어/레벨에 따라 빨라짐)
     get attackInterval() {
-        // 기본 0.5s에서 티어와 레벨에 따라 감소
         const baseInterval = 0.5;
         const tierBonus = this.weaponTier * 0.02;
         const levelBonus = this.weaponLevel * 0.005;
         return Math.max(0.15, baseInterval - tierBonus - levelBonus);
     },
-    // 스킬 정보 (치실 티어 및 레벨 기반)
     get skill() {
         const tier = FLOSS_TIERS[this.flossTier];
         return {
@@ -156,8 +153,6 @@ function resizeCanvas() {
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    // 플레이어 위치 조정
     PLAYER.x = rect.width * 0.18;
     PLAYER.y = rect.height * 0.55;
 }
@@ -178,7 +173,7 @@ function showMessage(text) {
 }
 
 function showBanner(text) {
-    STATE.bannerTimer = 2; // 2초 표시
+    STATE.bannerTimer = 2; 
     showMessage(text);
 }
 
@@ -187,12 +182,11 @@ function showBanner(text) {
 // ─────────────────────────────────────
 function spawnEnemy() {
     const rect = canvas.getBoundingClientRect();
-    // 스테이지 5, 10, 15... 마다 보스 확률 증가
     const bossChance = (STATE.stage % 5 === 0) ? 0.3 : 0.1;
     const isBoss = Math.random() < bossChance;
 
     const baseHp = 40 + STATE.stage * 12;
-    const hp = isBoss ? baseHp * 5 : baseHp; // 보스는 HP 5배
+    const hp = isBoss ? baseHp * 5 : baseHp; 
 
     STATE.enemies.push({
         x: rect.width + 40,
@@ -218,6 +212,36 @@ function shootProjectile() {
 // ─────────────────────────────────────
 // 외형 관련 (Draw)
 // ─────────────────────────────────────
+function drawBackground() {
+    const rect = canvas.getBoundingClientRect();
+
+    const skyHeight = rect.height * 0.55;
+    const grad = ctx.createLinearGradient(0, 0, 0, skyHeight);
+    grad.addColorStop(0, "#c2f1ff");
+    grad.addColorStop(1, "#e3fbff");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, rect.width, skyHeight);
+
+    const groundTop = skyHeight;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, groundTop, rect.width, rect.height - groundTop);
+    ctx.clip();
+
+    const stripeHeight = 60;
+    for (let i = -2; i < 8; i++) {
+        ctx.fillStyle = i % 2 === 0 ? "#1b9c8d" : "#1aa394"; 
+        ctx.beginPath();
+        ctx.moveTo(-rect.width, groundTop + i * stripeHeight);
+        ctx.lineTo(rect.width * 2, groundTop + (i - 1) * stripeHeight);
+        ctx.lineTo(rect.width * 2, groundTop + i * stripeHeight);
+        ctx.lineTo(-rect.width, groundTop + (i + 1) * stripeHeight);
+        ctx.closePath();
+        ctx.fill();
+    }
+    ctx.restore();
+}
+
 function drawPlayer() {
     const rect = canvas.getBoundingClientRect();
 
@@ -235,7 +259,7 @@ function drawPlayer() {
     ctx.textBaseline = "middle";
     ctx.fillText("🦷", PLAYER.x, PLAYER.y);
 
-    // 장비 아이콘 (구매한 티어의 아이콘 사용)
+    // 장비 아이콘
     ctx.font = "16px serif";
     const weaponIcon = WEAPON_TIERS[PLAYER.weaponTier].icon;
     const armorIcon = ARMOR_TIERS[PLAYER.armorTier].icon;
@@ -255,6 +279,18 @@ function getProjectileStyle() {
     return { color: "#ffffff", size: 8, char: "✵" };
 }
 
+function drawProjectiles() {
+    const style = getProjectileStyle();
+    ctx.font = `${style.size * 3}px serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = style.color;
+
+    for (const p of STATE.projectiles) {
+        ctx.fillText(style.char, p.x, p.y);
+    }
+}
+
 function drawEnemies(dt) {
     const rect = canvas.getBoundingClientRect();
 
@@ -264,7 +300,7 @@ function drawEnemies(dt) {
         e.hitTimer = Math.max(0, e.hitTimer - dt);
         
         if (e.hitTimer > 0) {
-            ctx.filter = "brightness(2)"; // 피격 시 반짝임
+            ctx.filter = "brightness(2)"; 
         }
 
         ctx.font = `${e.radius * 1.4}px serif`;
@@ -292,8 +328,6 @@ function drawEnemies(dt) {
 // 업데이트
 // ─────────────────────────────────────
 function update(delta) {
-    if (!STATE.running) return;
-
     const rect = canvas.getBoundingClientRect();
     const dt = delta / 1000;
 
@@ -332,7 +366,7 @@ function update(delta) {
         for (const e of STATE.enemies) {
             if (Math.abs(p.x - e.x) < 20 && Math.abs(p.y - e.y) < 20) {
                 e.hp -= p.power;
-                e.hitTimer = 0.1; // 피격 효과
+                e.hitTimer = 0.1; 
                 hit = true;
                 playOnce(sfxHit);
 
@@ -361,8 +395,8 @@ function update(delta) {
             PLAYER.hp -= damage * dt;
             if (PLAYER.hp <= 0) {
                 PLAYER.hp = 0;
-                gameOver();
-                return;
+                // 게임 오버 상태만 설정하고 로직을 중단하지 않습니다.
+                gameOver(); 
             }
         }
     }
@@ -396,9 +430,9 @@ function useSkill() {
     playOnce(sfxSkill);
 
     // 스킬 이펙트 (흰색 플래시)
+    const rect = canvas.getBoundingClientRect();
     ctx.save();
     ctx.fillStyle = "rgba(255,255,255,0.8)";
-    const rect = canvas.getBoundingClientRect();
     ctx.fillRect(0, 0, rect.width, rect.height);
     ctx.restore();
 
@@ -419,7 +453,7 @@ function useSkill() {
 
 
 // ─────────────────────────────────────
-// UI 및 상점 (장비 구매 로직)
+// UI 및 상점 (장비 구매 및 강화 로직)
 // ─────────────────────────────────────
 
 function updateGearTexts() {
@@ -448,14 +482,10 @@ function updateUpgradeButtons() {
     btnFluorUpgrade.textContent = `🧵 불소 강화 (Lv.${PLAYER.flossLevel}) | ${fCost}G`;
     btnFluorUpgrade.classList.toggle("disabled", PLAYER.gold < fCost);
 
-    // HP 강화 (새로 추가)
-    // NOTE: HTML에 버튼을 추가해야 합니다. 임시로 기존 버튼 중 하나를 HP 강화로 사용할 수도 있습니다.
-    // 여기서는 별도의 HP 버튼이 HTML에 있다고 가정하고 로직만 구현합니다.
-    /*
+    // HP 강화 (체력 강화)
     const hpCost = 100 + PLAYER.hpBoostLevel * 80;
-    btnHpUpgrade.textContent = `❤️ 체력 강화 (Lv.${PLAYER.hpBoostLevel}) | ${hpCost}G`;
+    btnHpUpgrade.textContent = `❤️ HP 강화 (Lv.${PLAYER.hpBoostLevel}) | ${hpCost}G`;
     btnHpUpgrade.classList.toggle("disabled", PLAYER.gold < hpCost);
-    */
 }
 
 function updateShopTexts() {
@@ -538,7 +568,7 @@ function upgradeStat(statType) {
     if (statType === 'weapon') {
         level = PLAYER.weaponLevel;
         cost = 30 + level * 30;
-        max = 30; // 최대 강화 레벨 제한
+        max = 30; 
         if (level >= max) { showMessage("무기 최대 강화 레벨입니다."); return; }
         PLAYER.weaponLevel++;
     } else if (statType === 'armor') {
@@ -553,6 +583,13 @@ function upgradeStat(statType) {
         max = 30; 
         if (level >= max) { showMessage("치실 최대 강화 레벨입니다."); return; }
         PLAYER.flossLevel++;
+    } else if (statType === 'hp') { 
+        level = PLAYER.hpBoostLevel;
+        cost = 100 + level * 80;
+        max = 50; 
+        if (level >= max) { showMessage("HP 최대 강화 레벨입니다."); return; }
+        PLAYER.hpBoostLevel++;
+        PLAYER.hp = PLAYER.maxHp; 
     } else {
         return;
     }
@@ -562,7 +599,13 @@ function upgradeStat(statType) {
         return;
     }
     PLAYER.gold -= cost;
-    showBanner(`${statType.toUpperCase()} 강화 성공! Lv.${level + 1} 달성.`);
+    
+    if (statType !== 'hp') {
+        showBanner(`${statType.toUpperCase()} 강화 성공! Lv.${level + 1} 달성.`);
+    } else {
+        showBanner(`❤️ HP 강화 성공! Max HP +50!`);
+    }
+    
     updateUI();
 }
 
@@ -571,13 +614,10 @@ function updateUI() {
     hpText.textContent = `${Math.round(PLAYER.hp)} / ${PLAYER.maxHp}`;
     levelText.textContent = `Lv.${PLAYER.level}`;
     
-    // ATK 표시: 기본 스탯 (강화 포함)
     const w = WEAPON_TIERS[PLAYER.weaponTier];
     atkText.textContent = `${PLAYER.atk} (Base ${w.baseAtk}) / S.Lv.${PLAYER.weaponLevel}`;
     
-    // DEF/불소 표시
     const a = ARMOR_TIERS[PLAYER.armorTier];
-    const f = FLOSS_TIERS[PLAYER.flossTier];
     defText.textContent = `DEF ${PLAYER.def} (Base ${a.baseDef}) / Floss Lv.${PLAYER.flossLevel}`;
     
     goldText.textContent = `${PLAYER.gold} Gold`;
@@ -600,7 +640,7 @@ function updateUI() {
 }
 
 // ─────────────────────────────────────
-// 세이브 / 로드 (업데이트된 스탯 반영)
+// 세이브 / 로드
 // ─────────────────────────────────────
 function saveGame() {
     const data = {
@@ -636,12 +676,10 @@ function loadGame() {
         PLAYER.level = data.level ?? PLAYER.level;
         PLAYER.gold = data.gold ?? PLAYER.gold;
         
-        // 티어 로드 시 최대 배열 길이로 제한
         PLAYER.weaponTier = Math.min(data.weaponTier ?? 0, WEAPON_TIERS.length - 1);
         PLAYER.armorTier = Math.min(data.armorTier ?? 0, ARMOR_TIERS.length - 1);
         PLAYER.flossTier = Math.min(data.flossTier ?? 0, FLOSS_TIERS.length - 1);
         
-        // 레벨 로드
         PLAYER.weaponLevel = data.weaponLevel ?? 1;
         PLAYER.armorLevel = data.armorLevel ?? 1;
         PLAYER.flossLevel = data.flossLevel ?? 1;
@@ -649,7 +687,6 @@ function loadGame() {
         STATE.distance = data.distance ?? STATE.distance;
         STATE.stage = data.stage ?? STATE.stage;
         
-        // HP 로드 시 최대 HP를 넘지 않도록 조정
         PLAYER.hp = Math.min(PLAYER.hp, PLAYER.maxHp);
     } catch (e) {}
 }
@@ -657,8 +694,14 @@ function loadGame() {
 // ─────────────────────────────────────
 // 게임 흐름 및 이벤트 연결
 // ─────────────────────────────────────
+function clearAllEntities() {
+    STATE.enemies.length = 0;
+    STATE.projectiles.length = 0;
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, rect.height);
+}
+
 function resetGame(fullReset = false) {
-    // ... (기존 resetGame 로직 유지) ...
     STATE.running = true;
     STATE.lastTime = 0;
     STATE.spawnTimer = 0;
@@ -667,7 +710,6 @@ function resetGame(fullReset = false) {
 
     if (fullReset) {
         PLAYER.hpBoostLevel = 0;
-        PLAYER.hp = PLAYER.maxHp;
         PLAYER.level = 1;
         PLAYER.gold = 0;
         PLAYER.weaponTier = 0;
@@ -680,8 +722,7 @@ function resetGame(fullReset = false) {
         STATE.stage = 1;
     }
 
-    // HP를 현재 최대 HP로 회복
-    PLAYER.hp = PLAYER.maxHp;
+    PLAYER.hp = PLAYER.maxHp; 
 
     clearAllEntities();
     spawnEnemy();
@@ -689,8 +730,13 @@ function resetGame(fullReset = false) {
     showMessage("새로운 자동 사냥 시작!");
 }
 
+function gameOver() {
+    STATE.running = false;
+    showBanner("☠️ 게임 오버! '새로 시작'을 눌러 다시 도전하세요.");
+}
+
 // ─────────────────────────────────────
-// 메인 루프 (drawEnemies에 dt 인자 전달)
+// 메인 루프 (렌더링 순서 수정)
 // ─────────────────────────────────────
 function loop(timestamp) {
     if (!STATE.lastTime) STATE.lastTime = timestamp;
@@ -701,23 +747,27 @@ function loop(timestamp) {
     const rect = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, rect.width, rect.height);
 
+    // 1. 업데이트 (로직 계산)
+    if (STATE.running) {
+        update(delta); 
+    }
+    
+    // 2. 렌더링 (그리기) - 로직 업데이트 상태와 관계없이 항상 화면에 그립니다.
     drawBackground();
     drawPlayer();
-    drawEnemies(dt); // dt를 전달하여 피격 타이머 관리
+    drawEnemies(dt); 
     drawProjectiles();
-    update(delta);
 
     requestAnimationFrame(loop);
 }
 
 // ─────────────────────────────────────
-// 이벤트 연결 (강화 버튼 로직 변경)
+// 이벤트 연결
 // ─────────────────────────────────────
 btnWeaponUpgrade.addEventListener("click", () => upgradeStat('weapon'));
 btnArmorUpgrade.addEventListener("click", () => upgradeStat('armor'));
 btnFluorUpgrade.addEventListener("click", () => upgradeStat('floss'));
-
-// 상점 카드 클릭 시 구매 로직은 updateShopTexts()에서 동적으로 연결됩니다.
+btnHpUpgrade.addEventListener("click", () => upgradeStat('hp')); // HP 강화 연결
 
 btnPause.addEventListener("click", () => {
     STATE.running = !STATE.running;
@@ -732,7 +782,35 @@ btnRestart.addEventListener("click", () => {
 
 btnSkill.addEventListener("click", useSkill);
 
-// 사운드 초기화 로직은 그대로 유지
+// 사운드 초기화 로직
+document.body.addEventListener(
+    "touchstart",
+    () => {
+        if (!audioActivated) {
+            audioActivated = true;
+            try {
+                bgm.volume = 0.5;
+                bgm.play();
+                showMessage("배경음악 ON 🎵");
+            } catch (e) {}
+        }
+    },
+    { once: true }
+);
+document.body.addEventListener(
+    "mousedown",
+    () => {
+        if (!audioActivated) {
+            audioActivated = true;
+            try {
+                bgm.volume = 0.5;
+                bgm.play();
+                showMessage("배경음악 ON 🎵");
+            } catch (e) {}
+        }
+    },
+    { once: true }
+);
 
 // ─────────────────────────────────────
 // 시작
