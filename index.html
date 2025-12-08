@@ -8,7 +8,6 @@
 </head>
 <body>
   <div class="app">
-    <!-- 상단 정보 / 로고 영역 -->
     <header class="top-bar">
       <div class="logo-block">
         <div class="logo-icon">🦷</div>
@@ -25,66 +24,64 @@
           <div class="stat-small" id="levelText">Lv.1</div>
         </div>
         <div class="stat">
-          <div class="stat-label">ATK</div>
-          <div class="stat-value" id="atkText">10 (무기 Lv.1)</div>
+          <div class="stat-label">ATK / S.Lv</div>
+          <div class="stat-value" id="atkText">10 (Base 10) / S.Lv.1</div>
           <div class="stat-small" id="goldText">0 Gold</div>
         </div>
         <div class="stat">
-          <div class="stat-label">DEF / 불소</div>
-          <div class="stat-value" id="defText">Lv.1 / Lv.1</div>
+          <div class="stat-label">DEF / Floss Lv</div>
+          <div class="stat-value" id="defText">DEF 0 (Base 0) / Floss Lv.1</div>
           <div class="stat-small" id="distanceText">0 m</div>
         </div>
       </div>
 
       <div class="message" id="messageText">화면을 한 번 탭하면 사운드가 켜집니다 🎵</div>
       <div class="gear-bar" id="gearBar">
-        🪥 <span id="weaponName">나무 칫솔 (Lv.1)</span> |
-        🧴 <span id="armorName">일반 치약 (Lv.1)</span> |
-        🧵 <span id="flossName">일반 치실 (Lv.1)</span>
+        <span id="weaponName">🪥 나무 칫솔 (Lv.1)</span> |
+        <span id="armorName">🧴 일반 치약 (Lv.1)</span> |
+        <span id="flossName">🧵 일반 치실 (Lv.1)</span>
       </div>
     </header>
 
-    <!-- 게임 영역 : 화면 상단 1/3만 사용 -->
     <main class="game-wrapper">
       <canvas id="gameCanvas"></canvas>
     </main>
 
-    <!-- 하단 2/3 : 버튼 + 상점 UI -->
     <section class="ui-wrapper">
-      <div class="button-row">
-        <button id="btnWeaponUpgrade" class="btn primary">🪥 무기 강화</button>
-        <button id="btnArmorUpgrade" class="btn primary">🧴 갑옷 강화</button>
-        <button id="btnFluorUpgrade" class="btn primary">🧵 불소 레벨</button>
+      <div class="button-row upgrade-row">
+        <button id="btnWeaponUpgrade" class="btn primary">🪥 무기 강화 (Lv.1) | 30G</button>
+        <button id="btnArmorUpgrade" class="btn primary">🧴 갑옷 강화 (Lv.1) | 30G</button>
+        <button id="btnFluorUpgrade" class="btn primary">🧵 불소 강화 (Lv.1) | 50G</button>
+        <button id="btnHpUpgrade" class="btn primary">❤️ HP 강화 (Lv.0) | 100G</button>
       </div>
 
-      <div class="button-row">
+      <div class="button-row utility-row">
         <button id="btnSkill" class="btn skill">💥 불소 폭발 (준비완료)</button>
         <button id="btnPause" class="btn secondary">⏸ 일시정지</button>
         <button id="btnRestart" class="btn secondary">🔁 새로 시작</button>
       </div>
 
-      <div class="shop-title">🛒 장비 상점</div>
+      <div class="shop-title">🛒 장비 상점 (구매 시 외형 변경/강화 레벨 초기화)</div>
       <div class="shop-grid">
-        <div class="shop-card">
+        <div class="shop-card" id="shopWeaponCard">
           <div class="shop-name">무기</div>
           <div class="shop-desc" id="shopWeaponNext">다음: -</div>
-          <div class="shop-cost" id="shopWeaponCost">필요 골드: -</div>
+          <div class="shop-cost" id="shopWeaponCost">구매 비용: -</div>
         </div>
-        <div class="shop-card">
+        <div class="shop-card" id="shopArmorCard">
           <div class="shop-name">갑옷(치약)</div>
           <div class="shop-desc" id="shopArmorNext">다음: -</div>
-          <div class="shop-cost" id="shopArmorCost">필요 골드: -</div>
+          <div class="shop-cost" id="shopArmorCost">구매 비용: -</div>
         </div>
-        <div class="shop-card">
+        <div class="shop-card" id="shopFlossCard">
           <div class="shop-name">방패(치실)</div>
           <div class="shop-desc" id="shopFlossNext">다음: -</div>
-          <div class="shop-cost" id="shopFlossCost">필요 골드: -</div>
+          <div class="shop-cost" id="shopFlossCost">구매 비용: -</div>
         </div>
       </div>
     </section>
   </div>
 
-  <!-- 사운드 -->
   <audio id="bgm" loop src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_9b3bbf85b0.mp3?filename=8-bit-gaming-112216.mp3"></audio>
   <audio id="sfxHit" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_286ff7103a.mp3?filename=retro-game-notification-212-112173.mp3"></audio>
   <audio id="sfxSkill" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_4fd39c31d8.mp3?filename=power-up-7103.mp3"></audio>
