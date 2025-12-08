@@ -133,11 +133,11 @@ body {
   gap: 6px;
 }
 
-/* 강화 버튼 행 (4개 버튼을 작은 크기로 배치) */
+/* 강화 버튼 행 (4개 버튼을 작은 크기로 배치하여 화면 밖으로 나가지 않도록 수정) */
 .upgrade-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 4px; /* 버튼 간격을 줄여 공간 확보 */
+  gap: 4px; 
 }
 
 /* 유틸리티 버튼 행 (3개 버튼) */
@@ -148,12 +148,12 @@ body {
 .btn {
   border-radius: 999px;
   border: none;
-  font-size: 10px; /* 글자 크기를 더 줄임 */
+  font-size: 10px; /* 글자 크기 조정 */
   font-weight: 600;
-  padding: 7px 4px; /* 패딩을 더 줄임 */
+  padding: 7px 4px; /* 패딩 조정 */
   cursor: pointer;
   white-space: nowrap;
-  min-width: 0; /* 최소 너비를 0으로 설정하여 유연하게 만듦 */
+  min-width: 0; 
 }
 
 .btn.primary {
