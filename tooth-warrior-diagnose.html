@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Tooth-warrior 진단기</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#0f172a;color:#e5e7eb;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+body{padding:12px}
+.wrap{max-width:720px;margin:auto}
+h1{font-size:20px;margin:0 0 6px}
+.sub{font-size:13px;color:#94a3b8;line-height:1.5;margin-bottom:12px}
+.card{background:#172033;border:1px solid #334155;border-radius:14px;padding:12px;margin:10px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+button{border:0;border-radius:10px;padding:11px 13px;font-weight:800;background:#f59e0b;color:#111827}
+button.secondary{background:#334155;color:#fff}
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:800}
+.ok{background:#14532d;color:#bbf7d0}
+.warn{background:#78350f;color:#fde68a}
+.err{background:#7f1d1d;color:#fecaca}
+#status{font-size:14px;line-height:1.55}
+#log{white-space:pre-wrap;word-break:break-word;background:#020617;color:#d1d5db;border-radius:10px;padding:10px;min-height:160px;max-height:360px;overflow:auto;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+#frameWrap{height:62vh;min-height:420px;background:#000;border-radius:14px;overflow:hidden;border:1px solid #334155}
+iframe{width:100%;height:100%;border:0;background:#111827}
+.small{font-size:12px;color:#94a3b8;line-height:1.45}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🦷 Tooth-warrior 자동 진단기</h1>
+  <div class="sub">
+    현재 저장소의 <b>index.html</b>을 그대로 불러오되, 실행 전에 오류 수집기를 삽입합니다.
+    원본 게임 파일이나 저장 데이터를 수정하지 않습니다.
+  </div>
+
+  <div class="card">
+    <div id="status"><span class="badge warn">준비 중</span> index.html을 불러오는 중…</div>
+    <div class="row" style="margin-top:10px">
+      <button onclick="runHealthCheck()">기본 진단 다시 실행</button>
+      <button class="secondary" onclick="skipIntroForTest()">인트로 건너뛰기</button>
+      <button class="secondary" onclick="copyReport()">결과 복사</button>
+    </div>
+    <div class="small" style="margin-top:8px">
+      오류가 보이면 이 화면을 캡처해서 ChatGPT에 보내거나, 「결과 복사」 후 붙여넣으세요.
+    </div>
+  </div>
+
+  <div class="card">
+    <b>진단 결과</b>
+    <div id="log" style="margin-top:8px">아직 결과가 없습니다.</div>
+  </div>
+
+  <div class="card">
+    <b>실제 게임 화면</b>
+    <div class="small" style="margin:5px 0 8px">
+      아래는 현재 저장소의 게임을 진단 모드로 실행한 화면입니다. 직접 눌러봐도 됩니다.
+    </div>
+    <div id="frameWrap"><iframe id="gameFrame" sandbox="allow-scripts allow-same-origin allow-modals allow-forms allow-pointer-lock"></iframe></div>
+  </div>
+</div>
+
+<script>
+const logEl = document.getElementById('log');
+const statusEl = document.getElementById('status');
+const frame = document.getElementById('gameFrame');
+let reports = [];
+let bootTime = Date.now();
+
+function addLog(type, message) {
+  const t = ((Date.now() - bootTime)/1000).toFixed(2);
+  const line = `[${t}s] ${type}: ${message}`;
+  reports.push(line);
+  logEl.textContent = reports.join('\n');
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setStatus(kind, text) {
+  const cls = kind === 'ok' ? 'ok' : kind === 'err' ? 'err' : 'warn';
+  statusEl.innerHTML = `<span class="badge ${cls}">${kind === 'ok' ? '정상' : kind === 'err' ? '오류' : '확인'}</span> ${text}`;
+}
+
+window.addEventListener('message', (e) => {
+  const d = e.data || {};
+  if (!d.__TW_DIAG__) return;
+  if (d.type === 'ERROR') addLog('JS ERROR', d.message + (d.where ? ` @ ${d.where}` : ''));
+  else if (d.type === 'RESOURCE') addLog('RESOURCE ERROR', d.message);
+  else if (d.type === 'REJECTION') addLog('PROMISE ERROR', d.message);
+  else if (d.type === 'CONSOLE_ERROR') addLog('console.error', d.message);
+  else if (d.type === 'BOOT') addLog('BOOT', d.message);
+});
+
+async function boot() {
+  reports = [];
+  bootTime = Date.now();
+  addLog('INFO', 'index.html fetch 시작');
+
+  try {
+    const res = await fetch('index.html?diag=' + Date.now(), {cache:'no-store'});
+    if (!res.ok) throw new Error(`index.html HTTP ${res.status}`);
+    let src = await res.text();
+    addLog('INFO', `index.html 로드 성공 (${src.length} chars)`);
+
+    const injector = `
+<script>
+(function(){
+  function send(type,message,where){
+    try{ parent.postMessage({__TW_DIAG__:true,type:type,message:String(message||''),where:String(where||'')}, '*'); }catch(e){}
+  }
+  send('BOOT','진단 스크립트가 게임보다 먼저 실행됨');
+
+  window.addEventListener('error', function(e){
+    if (e && e.target && e.target !== window) {
+      var tag = e.target.tagName || 'RESOURCE';
+      var src = e.target.src || e.target.href || '';
+      send('RESOURCE', tag + ' 로딩 실패: ' + src);
+      return;
+    }
+    var where = (e.filename||'') + (e.lineno ? ':'+e.lineno : '') + (e.colno ? ':'+e.colno : '');
+    send('ERROR', e.message || 'Unknown JavaScript error', where);
+  }, true);
+
+  window.addEventListener('unhandledrejection', function(e){
+    var r=e.reason;
+    send('REJECTION', r && (r.stack||r.message) ? (r.stack||r.message) : String(r));
+  });
+
+  var oldErr = console.error;
+  console.error = function(){
+    try{ send('CONSOLE_ERROR', Array.prototype.map.call(arguments, String).join(' ')); }catch(e){}
+    return oldErr.apply(console, arguments);
+  };
+})();
+<\/script>`;
+
+    if (/<head[^>]*>/i.test(src)) {
+      src = src.replace(/<head([^>]*)>/i, '<head$1>' + injector + '<base href="./">');
+    } else {
+      src = injector + '<base href="./">' + src;
+    }
+
+    frame.srcdoc = src;
+    setStatus('warn', '게임을 실행했습니다. 2초 후 자동 진단합니다.');
+    setTimeout(runHealthCheck, 2200);
+  } catch (err) {
+    addLog('FATAL', err.stack || err.message || String(err));
+    setStatus('err', '진단기를 시작하지 못했습니다.');
+  }
+}
+
+function safeGetWindow() {
+  try { return frame.contentWindow; } catch(e) { addLog('FATAL','iframe 접근 실패: '+e.message); return null; }
+}
+
+function testFn(w, name) {
+  const ok = typeof w[name] === 'function';
+  addLog(ok ? 'OK' : 'MISSING', `${name}: ${ok ? 'function' : typeof w[name]}`);
+  return ok;
+}
+
+function runHealthCheck() {
+  const w = safeGetWindow();
+  if (!w) return;
+
+  addLog('-----', '기본 진단 시작');
+
+  const required = [
+    'initGame','loadGame','saveGame',
+    'setupMiningTouch','processMining','renderInventory',
+    'switchView','renderDungeonList','startDungeon',
+    'renderResearchContent','updateUI',
+    'updateCombat','renderWeaponSlots'
+  ];
+
+  let missing = 0;
+  required.forEach(n => { if (!testFn(w,n)) missing++; });
+
+  try {
+    addLog('STATE', `TOOTH_DATA: ${w.TOOTH_DATA ? 'OK' : 'MISSING'}`);
+    addLog('STATE', `inventory: ${Array.isArray(w.inventory) ? 'array['+w.inventory.length+']' : typeof w.inventory}`);
+    addLog('STATE', `gold=${w.gold}, dia=${w.dia}, currentView=${w.currentView}`);
+    addLog('STATE', `introSeen=${w.introSeen}, dungeonActive=${w.dungeonActive}`);
+
+    const doc = w.document;
+    const ids = ['game-container','mine-view','inventory-grid','research-content','dungeon-list','battle-screen','joystick-zone'];
+    ids.forEach(id => addLog(doc.getElementById(id) ? 'DOM OK' : 'DOM MISSING', '#' + id));
+
+    const grid = doc.getElementById('inventory-grid');
+    addLog('DOM', `inventory children=${grid ? grid.children.length : 'N/A'}`);
+
+    if (typeof w.updateUI === 'function') {
+      try { w.updateUI(); addLog('CALL OK','updateUI()'); }
+      catch(e){ addLog('CALL ERROR','updateUI(): '+(e.stack||e.message)); }
+    }
+    if (typeof w.renderInventory === 'function') {
+      try { w.renderInventory(); addLog('CALL OK','renderInventory()'); }
+      catch(e){ addLog('CALL ERROR','renderInventory(): '+(e.stack||e.message)); }
+    }
+    if (typeof w.renderResearchContent === 'function') {
+      try { w.renderResearchContent(); addLog('CALL OK','renderResearchContent()'); }
+      catch(e){ addLog('CALL ERROR','renderResearchContent(): '+(e.stack||e.message)); }
+    }
+    if (typeof w.renderDungeonList === 'function') {
+      try { w.renderDungeonList(); addLog('CALL OK','renderDungeonList()'); }
+      catch(e){ addLog('CALL ERROR','renderDungeonList(): '+(e.stack||e.message)); }
+    }
+  } catch(e) {
+    addLog('CHECK ERROR', e.stack || e.message);
+  }
+
+  const errorCount = reports.filter(x => /JS ERROR|PROMISE ERROR|RESOURCE ERROR|CALL ERROR|FATAL|MISSING/.test(x)).length;
+  if (errorCount === 0 && missing === 0) {
+    setStatus('ok','기본 로딩과 주요 모듈은 정상입니다. 아래 게임에서 기능을 눌러보세요.');
+  } else {
+    setStatus('err',`문제 ${errorCount}개를 감지했습니다. 결과를 ChatGPT에 보내주세요.`);
+  }
+}
+
+function skipIntroForTest() {
+  const w = safeGetWindow();
+  if (!w) return;
+  try {
+    if (typeof w.completeIntro === 'function') w.completeIntro();
+    const a=w.document.getElementById('start-btn-layer');
+    const b=w.document.getElementById('intro-layer');
+    const g=w.document.getElementById('game-container');
+    if(a) a.style.display='none';
+    if(b) b.style.display='none';
+    if(g) g.style.display='flex';
+    addLog('ACTION','인트로 레이어를 숨기고 게임 화면을 표시함');
+  } catch(e) {
+    addLog('ACTION ERROR',e.stack||e.message);
+  }
+}
+
+async function copyReport() {
+  const text = reports.join('\n');
+  try {
+    await navigator.clipboard.writeText(text);
+    alert('진단 결과를 복사했습니다. ChatGPT에 붙여넣으세요.');
+  } catch(e) {
+    prompt('아래 내용을 전체 복사하세요.', text);
+  }
+}
+
+boot();
+</script>
+</body>
+</html>
